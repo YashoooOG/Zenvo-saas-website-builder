@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum AgencyRole {
+  ADMIN
+  MEMBER
+  CLIENT
+}
+
+enum SubAccountRole {
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+model User {
+  // Clerk ID, not an email address. Deleted IDs remain as minimal tombstones.
+  id String @id @db.VarChar(191)
+  email String? @db.VarChar(320)
+  name String? @db.VarChar(256)
+  imageUrl String? @db.Text
+  clerkUpdatedAt BigInt @default(0)
+  deletedAt DateTime? @db.DateTime(3)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  ownedAgencies Agency[]
+  memberships AgencyMembership[]
+}
+
+model ClerkWebhookReceipt {
+  id String @id @db.VarChar(191)
+  type String @db.VarChar(64)
+  receivedAt DateTime @default(now()) @db.DateTime(3)
+}
+
+model Agency {
+  id String @id @default(cuid()) @db.VarChar(191)
+  name String @db.VarChar(191)
+  ownerId String @db.VarChar(191)
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  logoUrl String? @db.Text
+  stripeCustomerId String? @unique @db.VarChar(191)
+  stripeConnectAccountId String? @unique @db.VarChar(191)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  memberships AgencyMembership[]
+  subAccounts SubAccount[]
+  @@index([ownerId])
+}
+
+model AgencyMembership {
+  agencyId String @db.VarChar(191)
+  userId String @db.VarChar(191)
+  role AgencyRole @default(CLIENT)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subAccounts SubAccountMembership[]
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  @@id([agencyId, userId])
+  @@index([userId])
+}
+
+model SubAccount {
+  id String @id @default(cuid()) @db.VarChar(191)
+  agencyId String @db.VarChar(191)
+  name String @db.VarChar(191)
+  subdomain String? @unique @db.VarChar(63)
+  enabled Boolean @default(true)
+  logoUrl String? @db.Text
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  memberships SubAccountMembership[]
+  pipelines Pipeline[]
+  contacts Contact[]
+  funnels Funnel[]
+  media Media[]
+  domains CustomDomain[]
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  @@unique([agencyId, id])
+}
+
+model SubAccountMembership {
+  agencyId String @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  userId String @db.VarChar(191)
+  role SubAccountRole @default(GUEST)
+  subAccount SubAccount @relation(fields: [agencyId, subAccountId], references: [agencyId, id], onDelete: Cascade)
+  membership AgencyMembership @relation(fields: [agencyId, userId], references: [agencyId, userId], onDelete: Cascade)
+  @@id([subAccountId, userId])
+  @@index([agencyId, userId])
+}
+
+model Pipeline {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  name String @db.VarChar(191)
+  subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  lanes Lane[]
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  @@unique([subAccountId, id])
+}
+
+model Lane {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  pipelineId String @db.VarChar(191)
+  name String @db.VarChar(191)
+  position Int @default(0)
+  pipeline Pipeline @relation(fields: [subAccountId, pipelineId], references: [subAccountId, id], onDelete: Cascade)
+  tickets Ticket[]
+  @@unique([subAccountId, pipelineId, id])
+  @@index([subAccountId, pipelineId, position])
+}
+
+model Contact {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  name String @db.VarChar(191)
+  email String? @db.VarChar(320)
+  subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+  @@unique([subAccountId, id])
+}
+
+model Ticket {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  pipelineId String @db.VarChar(191)
+  laneId String @db.VarChar(191)
+  contactId String? @db.VarChar(191)
+  title String @db.VarChar(191)
+  description String? @db.Text
+  position Int @default(0)
+  value Decimal @default(0) @db.Decimal(19, 4)
+  lane Lane @relation(fields: [subAccountId, pipelineId, laneId], references: [subAccountId, pipelineId, id], onDelete: Cascade)
+  contact Contact? @relation(fields: [subAccountId, contactId], references: [subAccountId, id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  @@index([subAccountId, pipelineId, laneId, position])
+  @@index([subAccountId, contactId])
+}
+
+model Funnel {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  name String @db.VarChar(191)
+  subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  pages FunnelPage[]
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  @@unique([subAccountId, id])
+}
+
+model FunnelPage {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  funnelId String @db.VarChar(191)
+  name String @db.VarChar(191)
+  path String @db.VarChar(191)
+  draftContent Json
+  publishedContent Json?
+  publishedAt DateTime? @db.DateTime(3)
+  funnel Funnel @relation(fields: [subAccountId, funnelId], references: [subAccountId, id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  @@unique([subAccountId, path])
+  @@index([subAccountId, funnelId])
+}
+
+model Media {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  storageKey String @unique @db.VarChar(191)
+  name String @db.VarChar(191)
+  url String @db.Text
+  mimeType String @db.VarChar(191)
+  sizeBytes BigInt
+  subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  @@index([subAccountId])
+}
+
+model CustomDomain {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  hostname String @unique @db.VarChar(253)
+  verifiedAt DateTime? @db.DateTime(3)
+  subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
+  @@index([subAccountId])
+}

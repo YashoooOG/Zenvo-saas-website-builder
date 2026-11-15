@@ -39,7 +39,8 @@ Avoid exporting conflicting MYSQL variables or DATABASE_URL in your terminal.
 | `bun run test:db` | Test URL validation and setup preservation |
 
 The temporary table is dropped after the check and is also removed automatically
-when its connection closes. No agency, account, or payment tables exist yet.
+when its connection closes. Stage 6 adds the initial application tables through
+`bun run db:migrate`. See [Prisma models, migrations, and Clerk sync](PRISMA-AND-SYNC.md).
 
 ## Troubleshooting
 

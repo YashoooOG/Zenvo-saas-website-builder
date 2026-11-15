@@ -8,7 +8,10 @@ The application foundation, local MySQL tooling, and Clerk authentication are
 implemented and verified with a development test account. The
 homepage now includes a responsive marketing page, interactive sample previews,
 and persistent system/light/dark appearance across public and account pages.
-Application tables, agency management, dashboards, and payments come later.
+The initial Prisma application tables and signed Clerk user-sync endpoint are
+implemented. Agency management, dashboards, and payments come later. Real Clerk
+webhook delivery still needs an endpoint and signing secret; see
+[database models and synchronization setup](docs/PRISMA-AND-SYNC.md).
 Host routing now separates the main application from client subdomains. Client
 sites return 404 until persisted accounts and published pages exist; custom
 domains remain blocked. See [routing configuration and tests](docs/TENANT-ROUTING.md).
@@ -54,7 +57,7 @@ database. Docker stores data in the `zenvo-local_mysql-data` volume.
 
 `bun run db:check` verifies authentication, the selected database, and a temporary
 write/read operation. It does not create permanent application tables. Prisma
-migrations are introduced in Stage 6.
+migrations are applied separately with `bun run db:migrate`.
 
 Use `bun run db:status` to inspect health and `bun run db:stop` to stop MySQL while
 retaining data. Run `bun run db:up` to start it again. Configuration tests run with

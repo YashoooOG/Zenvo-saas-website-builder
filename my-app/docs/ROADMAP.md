@@ -47,7 +47,7 @@ propagation into Clerk sign-in. No browser errors were recorded; Clerk emitted
 its expected development-key warning. Product previews explicitly use sample
 data; agency features and billing remain later stages. See [landing page notes](LANDING-PAGE.md).
 
-Stage 5 is implemented and verified; awaiting the project owner's commit.
+Stage 5 is committed as `6aef0fd`.
 Validation on November 15, 2026: ESLint, TypeScript, production build, five
 hostname/path policy tests, four HTTP routing tests, and five authentication
 regression tests passed. HTTP checks cover public-site rewrites, reserved and
@@ -57,6 +57,21 @@ directory permission error; the build outside the sandbox passed. No UI changes
 were made in this stage. Tenant hosts currently return uncached 404 responses;
 persisted tenant records and published content remain subsequent stages.
 See [routing configuration and tests](TENANT-ROUTING.md).
+
+Stage 6 implementation is complete; awaiting the project owner's commit.
+Validation on November 15, 2026: Prisma schema validation, initial migration on
+local MySQL, migration replay with no pending changes, and a zero-difference
+schema comparison passed. ESLint, TypeScript, production build, ten persistence
+tests, two production HTTP webhook tests, five authentication regressions, and
+four HTTP routing regressions passed. Tests caught and fixed a concurrent-insert
+snapshot issue using READ COMMITTED transactions with user row locks. Test data
+was scoped to disposable fixtures; application migrations were not reset.
+
+Real Clerk dashboard delivery is not configured yet: a public endpoint and its
+`CLERK_WEBHOOK_SIGNING_SECRET` are still needed. Local tests use temporary signing
+material and the actual Clerk verifier. This does not establish external provider
+delivery. Stage 7 must also handle profiles whose webhook has not arrived during
+onboarding. See [Prisma and sync setup](PRISMA-AND-SYNC.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
