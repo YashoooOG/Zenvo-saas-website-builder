@@ -15,7 +15,9 @@
     "db:check": "node scripts/check-database.mjs",
     "test:db": "node --test scripts/database-config.test.mjs",
     "auth:check": "node scripts/check-auth.mjs",
-    "test:auth": "node --test scripts/auth-routes.test.mjs"
+    "test:auth": "node --test scripts/auth-routes.test.mjs",
+    "test:routing": "node --test scripts/tenant-routing.test.mjs",
+    "test:routing:http": "node --test scripts/tenant-routes.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

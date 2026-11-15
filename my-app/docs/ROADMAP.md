@@ -37,7 +37,7 @@ test user was deleted afterward. New-account password registration, password
 recovery, and GitHub/Google OAuth were not exercised; the owner deferred personal
 acceptance testing until the complete project. See [authentication instructions](AUTHENTICATION.md).
 
-Stage 4 is implemented and verified; awaiting the project owner's commit.
+Stage 4 is committed as `20ccae8`.
 Validation on November 15, 2026: ESLint, TypeScript, production build, and all
 five HTTP authentication regression checks passed. Browser checks covered
 desktop light/dark layouts, mobile layout at 390px, overflow at 320px, preview
@@ -46,6 +46,17 @@ Escape and anchor selection, theme persistence after reload, and dark theme
 propagation into Clerk sign-in. No browser errors were recorded; Clerk emitted
 its expected development-key warning. Product previews explicitly use sample
 data; agency features and billing remain later stages. See [landing page notes](LANDING-PAGE.md).
+
+Stage 5 is implemented and verified; awaiting the project owner's commit.
+Validation on November 15, 2026: ESLint, TypeScript, production build, five
+hostname/path policy tests, four HTTP routing tests, and five authentication
+regression tests passed. HTTP checks cover public-site rewrites, reserved and
+unknown hosts, app/API/auth isolation, encoded paths, internal-route denial, and
+forged forwarded-host/tenant headers. The initial sandboxed build hit a generated
+directory permission error; the build outside the sandbox passed. No UI changes
+were made in this stage. Tenant hosts currently return uncached 404 responses;
+persisted tenant records and published content remain subsequent stages.
+See [routing configuration and tests](TENANT-ROUTING.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
