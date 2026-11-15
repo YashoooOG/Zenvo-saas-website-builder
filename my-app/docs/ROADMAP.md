@@ -84,7 +84,7 @@ and sign-out/rejection. Testing caught and fixed duplicate labels in retained
 routes and missing request-time boundaries around Prisma. Disposable Clerk and
 local database fixtures were removed. See [agency notes](AGENCIES.md).
 
-Stage 7b (agency logo uploads) is implemented; awaiting the owner's commit.
+Stage 7b (agency logo uploads) is committed as `259e21c`.
 Validation on November 15, 2026: additive migration, production build (including
 TypeScript), ESLint, ten logo tests, eight agency tests, ten persistence tests,
 and six authentication HTTP checks passed. A disposable Clerk account verified
@@ -92,7 +92,19 @@ real UploadThing upload, replacement, decoded image dimensions, refresh
 persistence, removal, desktop light and mobile dark layouts, and sign-out.
 No browser errors were recorded. Both cloud files were confirmed absent after
 removal; the disposable workspace and identity were deleted. See
-[logo setup and lifecycle](AGENCY-LOGOS.md). Stage 8 is next after the commit.
+[logo setup and lifecycle](AGENCY-LOGOS.md).
+
+Stage 8 (workspace navigation and shared dialogs) is implemented; awaiting the
+owner's commit. Production build including TypeScript, ESLint, eight agency
+authorization/persistence tests, and six HTTP authentication regressions passed
+on November 15, 2026. Browser checks covered empty and populated switchers,
+case-insensitive search and no results, two-agency switching, current navigation,
+rename propagation, Escape and Tab/Shift+Tab focus behavior, unsaved form
+preservation, mobile menu navigation, 390px/320px overflow checks, light/dark
+layouts, unavailable-agency rejection, and sign-out. No browser errors were
+recorded. Disposable local agencies and the Clerk identity were removed.
+Sub-account navigation will accompany Stage 11; Stage 9 membership permissions
+are next. See [workspace navigation notes](WORKSPACE-NAVIGATION.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

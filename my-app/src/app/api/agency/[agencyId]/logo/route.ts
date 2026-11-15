@@ -31,7 +31,7 @@ async function handle(request: Request, context: Context) {
       // A missing provider configuration must not prevent local logo removal.
       try { await cleanupLogoAssets(db, createLogoStorage(), agencyId); } catch { console.error('Logo cleanup deferred.'); }
     }
-    revalidatePath('/agency');
+    revalidatePath('/agency', 'layout');
     revalidatePath(`/agency/${agencyId}/settings`);
     return Response.json(result, { headers });
   } catch (error) {

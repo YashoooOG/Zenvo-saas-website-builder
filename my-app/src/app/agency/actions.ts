@@ -27,7 +27,7 @@ export async function createAgencyAction(_previous: AgencyFormState, formData: F
     const agency = await createAgency(getDb(), user.id, { ...fields(formData), creationKey: formData.get('creationKey') });
     id = agency.id;
   } catch (error) { return failure(error); }
-  revalidatePath('/agency');
+  revalidatePath('/agency', 'layout');
   redirect(`/agency/${id}/settings`);
 }
 
@@ -42,7 +42,7 @@ export async function updateAgencyAction(previous: AgencyFormState, formData: Fo
       revision: typeof rawRevision === 'string' && /^\d+$/.test(rawRevision) ? Number(rawRevision) : NaN,
     });
   } catch (error) { return { ...failure(error), revision: previous.revision }; }
-  revalidatePath('/agency');
+  revalidatePath('/agency', 'layout');
   revalidatePath(`/agency/${agency.id}/settings`);
   return { success: true, message: 'Agency details saved.', revision: agency.revision };
 }
