@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -26,19 +27,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ClerkProvider
+        <ThemeProvider><ClerkProvider
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
           signInFallbackRedirectUrl="/agency"
           signUpFallbackRedirectUrl="/agency"
           afterSignOutUrl="/"
-          appearance={{ variables: { colorPrimary: "#1e40af", borderRadius: "0.5rem" } }}
+          appearance={{ variables: { colorPrimary: "var(--brand-accent)", colorBackground: "var(--card)", colorForeground: "var(--foreground)", colorMutedForeground: "var(--muted-foreground)", colorNeutral: "var(--foreground)", borderRadius: "0.5rem" } }}
         >
           {children}
-        </ClerkProvider>
+        </ClerkProvider></ThemeProvider>
       </body>
     </html>
   );

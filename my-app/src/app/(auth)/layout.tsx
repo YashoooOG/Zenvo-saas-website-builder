@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { ThemeSelect } from "@/components/theme-select";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="grid min-h-screen bg-slate-50 text-slate-950 lg:grid-cols-2">
+    <main className="grid min-h-screen bg-background text-foreground lg:grid-cols-2">
       <section className="flex flex-col justify-between gap-12 bg-slate-950 px-6 py-8 text-white sm:px-12 lg:p-16">
         <Link href="/" className="w-fit text-2xl font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
           zenvo<span className="text-blue-400">.</span>
@@ -17,8 +18,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
         <p className="hidden text-sm text-slate-400 lg:block">Your agency. Your clients. Zenvo.</p>
       </section>
-      <section aria-label="Account access" className="flex min-w-0 items-center justify-center px-4 py-12 sm:px-8">
-        {children}
+      <section aria-label="Account access" className="flex min-w-0 flex-col items-center justify-center gap-8 px-4 py-12 sm:px-8">
+        <ThemeSelect />{children}
       </section>
     </main>
   );

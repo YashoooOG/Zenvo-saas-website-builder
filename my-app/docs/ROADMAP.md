@@ -26,7 +26,7 @@ running on `127.0.0.1:3307` with data in `zenvo-local_mysql-data`. Generated loc
 credentials are in ignored `.env.local`; the existing `.env` was preserved.
 No permanent application tables have been created. See [database instructions](DATABASE.md).
 
-Stage 3 is implemented and verified; awaiting the project owner's commit.
+Stage 3 is committed as `f4b8b7e`.
 Clerk accepted the development key; lint, TypeScript, production build, and five
 HTTP authentication checks passed on November 15, 2026. Browser checks passed for
 email-code sign-in with a disposable development account, workspace access,
@@ -36,6 +36,16 @@ checked, with no horizontal overflow at 390px and 1366px widths. The temporary
 test user was deleted afterward. New-account password registration, password
 recovery, and GitHub/Google OAuth were not exercised; the owner deferred personal
 acceptance testing until the complete project. See [authentication instructions](AUTHENTICATION.md).
+
+Stage 4 is implemented and verified; awaiting the project owner's commit.
+Validation on November 15, 2026: ESLint, TypeScript, production build, and all
+five HTTP authentication regression checks passed. Browser checks covered
+desktop light/dark layouts, mobile layout at 390px, overflow at 320px, preview
+tabs with arrow and End keys, FAQ disclosure, mobile navigation dismissal with
+Escape and anchor selection, theme persistence after reload, and dark theme
+propagation into Clerk sign-in. No browser errors were recorded; Clerk emitted
+its expected development-key warning. Product previews explicitly use sample
+data; agency features and billing remain later stages. See [landing page notes](LANDING-PAGE.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

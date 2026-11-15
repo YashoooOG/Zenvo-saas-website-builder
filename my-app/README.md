@@ -6,7 +6,8 @@ An agency platform being built in tested, reviewable stages. The intended produc
 
 The application foundation, local MySQL tooling, and Clerk authentication are
 implemented and verified with a development test account. The
-homepage provides account entry links; the full marketing page is Stage 4.
+homepage now includes a responsive marketing page, interactive sample previews,
+and persistent system/light/dark appearance across public and account pages.
 Application tables, agency management, dashboards, and payments come later.
 
 This project adapts the Web Prodigies tutorial to the existing Next.js 16 stack. See [the implementation roadmap](docs/ROADMAP.md) for scope and verification gates.
@@ -84,6 +85,8 @@ Run `bun run start` to inspect a production build locally.
 - `src/app/page.tsx`: the public homepage.
 - `src/app/globals.css`: Tailwind imports and shared theme tokens.
 - `src/components/ui`: reusable shadcn components, currently using Base UI.
+- `src/components/marketing`: responsive navigation and sample product previews.
+- `src/components/theme-provider.tsx`: persistent appearance using next-themes.
 - `src/lib`: shared utilities.
 - `.env.example`: tracked configuration guidance without secrets.
 
