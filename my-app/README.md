@@ -9,7 +9,9 @@ implemented and verified with a development test account. The
 homepage now includes a responsive marketing page, interactive sample previews,
 and persistent system/light/dark appearance across public and account pages.
 The initial Prisma application tables and signed Clerk user-sync endpoint are
-implemented. Agency management, dashboards, and payments come later. Real Clerk
+implemented. Owners can create agencies and edit business details with ownership
+checks and stale-edit protection. Logo uploads, dashboards, and payments come later.
+See [agency onboarding and settings](docs/AGENCIES.md). Real Clerk
 webhook delivery still needs an endpoint and signing secret; see
 [database models and synchronization setup](docs/PRISMA-AND-SYNC.md).
 Host routing now separates the main application from client subdomains. Client

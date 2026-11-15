@@ -45,6 +45,16 @@ model Agency {
   ownerId String @db.VarChar(191)
   owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   logoUrl String? @db.Text
+  businessEmail String? @db.VarChar(320)
+  phone String? @db.VarChar(40)
+  website String? @db.VarChar(2048)
+  address String? @db.VarChar(256)
+  city String? @db.VarChar(100)
+  region String? @db.VarChar(100)
+  postalCode String? @db.VarChar(32)
+  country String? @db.VarChar(100)
+  revision Int @default(0)
+  creationKey String? @db.VarChar(36)
   stripeCustomerId String? @unique @db.VarChar(191)
   stripeConnectAccountId String? @unique @db.VarChar(191)
   createdAt DateTime @default(now()) @db.DateTime(3)
@@ -52,6 +62,7 @@ model Agency {
   memberships AgencyMembership[]
   subAccounts SubAccount[]
   @@index([ownerId])
+  @@unique([ownerId, creationKey])
 }
 
 model AgencyMembership {

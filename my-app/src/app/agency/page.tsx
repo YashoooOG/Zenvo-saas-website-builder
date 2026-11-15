@@ -1,34 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SignOutButton, UserButton } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
-import { ThemeSelect } from "@/components/theme-select";
-import { Brand } from "@/components/brand";
+import { ArrowRight, Building2, Plus } from 'lucide-react';
+import { requireWorkspaceUser } from '@/lib/workspace-user';
+import { listOwnedAgencies } from '@/lib/agencies';
+import { getDb } from '@/lib/db';
 
-export const metadata: Metadata = { title: "Your workspace" };
+export const metadata: Metadata = { title: 'Your agencies' };
 
 export default async function AgencyPage() {
-  // Check the resource itself, including direct and client-side navigation.
-  await auth.protect();
-
-  return (
-    <main className="min-h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between border-b bg-card px-6 py-5 sm:px-12">
-        <Brand />
-        <div className="account-theme"><ThemeSelect /><UserButton /></div>
-      </header>
-      <section className="mx-auto max-w-3xl px-6 py-20 sm:py-28">
-        <h1 className="text-4xl font-semibold tracking-tight">Welcome to your workspace.</h1>
-        <p className="mt-5 max-w-lg text-lg leading-8 text-muted-foreground">
-          You’re signed in to Zenvo. Open your profile menu to manage your account and security settings.
-        </p>
-        <div className="mt-10 flex flex-wrap items-center gap-5">
-          <Link href="/" className="action">Back to home</Link>
-          <SignOutButton redirectUrl="/">
-            <button className="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted">Sign out</button>
-          </SignOutButton>
-        </div>
-      </section>
-    </main>
-  );
+  const user = await requireWorkspaceUser();
+  const agencies = await listOwnedAgencies(getDb(), user.id);
+  return <>
+    <div className="workspace-heading"><div><p className="workspace-eyebrow">Your workspace</p><h1>Your agencies</h1><p>A home for your business and the clients you work with.</p></div>
+      {agencies.length > 0 && <Link href="/agency/new" className="action"><Plus size={16} aria-hidden="true" />Create agency</Link>}</div>
+    {agencies.length === 0 ? <section className="agency-empty"><div className="agency-mark"><Building2 size={28} strokeWidth={1.5} aria-hidden="true" /></div>
+      <h2>Start with your agency</h2><p>Give your workspace a name. You can add your business details now or come back to them later.</p><Link href="/agency/new" className="action">Create your first agency<ArrowRight size={16} aria-hidden="true" /></Link>
+    </section> : <ul className="agency-list">{agencies.map(agency => <li key={agency.id}><Link href={`/agency/${agency.id}/settings`}>
+      <span className="agency-initial" aria-hidden="true">{Array.from(agency.name)[0]?.toUpperCase()}</span><div><h2>{agency.name}</h2><p>{agency.businessEmail || agency.country || 'Agency workspace'}</p></div><span className="agency-owner">Owner</span><ArrowRight size={18} aria-hidden="true" />
+    </Link></li>)}</ul>}
+  </>;
 }

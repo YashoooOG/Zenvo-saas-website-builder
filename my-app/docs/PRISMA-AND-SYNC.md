@@ -89,9 +89,9 @@ Supported events: `user.created`, `user.updated`, `user.deleted`.
 - Database failures return 503 so Clerk can retry. No secrets, profile payloads,
   or connection URLs are written to application logs.
 
-Webhooks are eventually consistent. Agency onboarding must fetch the
-authenticated user from Clerk when the local profile has not arrived yet; that
-fallback belongs to Stage 7. Existing Clerk users are not automatically imported
+Webhooks are eventually consistent. Stage 7a onboarding fetches the authenticated
+Clerk profile when it has not arrived locally, using the same synchronization
+rules. Existing Clerk users are imported on their first agency visit, not in bulk
 by this migration. See [Clerk delivery guarantees](https://clerk.com/docs/guides/development/webhooks/overview).
 
 ## Activate real Clerk delivery

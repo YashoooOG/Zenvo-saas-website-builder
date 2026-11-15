@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:migrations": "prisma migrate status",
     "test:persistence": "bun --env-file=.env.local test scripts/persistence.test.ts",
+    "test:agencies": "bun --env-file=.env.local test scripts/agencies.test.ts",
     "test:webhook:http": "bun --env-file=.env.local test --timeout 30000 scripts/webhook-http.test.ts",
     "db:setup": "node scripts/setup-database.mjs",
     "db:up": "docker compose --env-file .env.local up -d --wait --wait-timeout 180 mysql",

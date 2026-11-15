@@ -1,3 +1,1 @@
-export default function Loading() {
-  return <p role="status" className="p-8 text-sm text-muted-foreground">Loading your workspace…</p>;
-}
+export default function Loading() { return <p className="text-muted-foreground" role="status">Loading your workspace…</p>; }

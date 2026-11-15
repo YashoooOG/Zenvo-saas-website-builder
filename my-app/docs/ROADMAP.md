@@ -58,7 +58,7 @@ were made in this stage. Tenant hosts currently return uncached 404 responses;
 persisted tenant records and published content remain subsequent stages.
 See [routing configuration and tests](TENANT-ROUTING.md).
 
-Stage 6 implementation is complete; awaiting the project owner's commit.
+Stage 6 is committed as `5b6c18e`.
 Validation on November 15, 2026: Prisma schema validation, initial migration on
 local MySQL, migration replay with no pending changes, and a zero-difference
 schema comparison passed. ESLint, TypeScript, production build, ten persistence
@@ -72,6 +72,17 @@ Real Clerk dashboard delivery is not configured yet: a public endpoint and its
 material and the actual Clerk verifier. This does not establish external provider
 delivery. Stage 7 must also handle profiles whose webhook has not arrived during
 onboarding. See [Prisma and sync setup](PRISMA-AND-SYNC.md).
+
+Stage 7a (agency creation/settings) is implemented; awaiting the owner's commit.
+Stage 7b adds authorized logo uploads as the next checkpoint. Validation on
+November 15, 2026: additive migration, zero schema drift, TypeScript, ESLint,
+production build, eight agency tests, ten persistence regressions, and five
+authentication regressions passed. Browser checks covered real development
+sign-in, profile bootstrap, validation, two agency creations, settings updates,
+refresh persistence, stale-tab conflicts, separate form state, mobile layouts,
+and sign-out/rejection. Testing caught and fixed duplicate labels in retained
+routes and missing request-time boundaries around Prisma. Disposable Clerk and
+local database fixtures were removed. See [agency notes](AGENCIES.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

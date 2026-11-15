@@ -1,0 +1,39 @@
+.workspace-shell { min-height: 100vh; background: var(--background); }
+.workspace-header { display: flex; justify-content: space-between; align-items: center; padding: 22px max(24px, calc((100vw - 1200px) / 2)); border-bottom: 1px solid var(--border); background: var(--card); }
+.workspace-content { max-width: 1200px; margin: 0 auto; padding: 56px 24px 80px; }
+.workspace-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 40px; }
+.workspace-heading h1 { font-size: clamp(30px, 4vw, 40px); font-weight: 550; line-height: 1.2; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.workspace-heading p:not(.workspace-eyebrow) { color: var(--muted-foreground); margin-top: 12px; line-height: 1.7; }
+.workspace-eyebrow { color: var(--muted-foreground); font-size: 13px; margin-bottom: 12px; }
+.agency-empty { border: 1px solid var(--border); background: var(--card); border-radius: 12px; padding: 64px 24px; text-align: center; }
+.agency-empty h2, .agency-empty h1 { font-size: 26px; line-height: 1.3; letter-spacing: -.025em; font-weight: 550; }
+.agency-empty p { max-width: 420px; margin: 16px auto 28px; line-height: 1.8; color: var(--muted-foreground); }
+.agency-mark { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 24px; background: var(--muted); border-radius: 12px; }
+.agency-list { display: grid; gap: 12px; }
+.agency-list li > a { display: flex; align-items: center; gap: 20px; padding: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+.agency-list li > a:hover { border-color: var(--brand-accent); }
+.agency-list h2 { font-size: 18px; font-weight: 550; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.agency-list p { margin-top: 6px; font-size: 14px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.agency-list li > a > div { flex: 1; min-width: 0; }
+.agency-initial { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 8px; background: var(--muted); color: var(--brand-accent); font-weight: 600; flex-shrink: 0; }
+.agency-owner { padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; color: var(--muted-foreground); }
+.agency-settings-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 64px; }
+.agency-settings-grid aside h2 { font-size: 16px; font-weight: 550; letter-spacing: -.01em; }
+.agency-settings-grid aside p { font-size: 14px; color: var(--muted-foreground); line-height: 1.8; margin-top: 16px; }
+.agency-form { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 32px; min-width: 0; }
+.agency-form-heading { margin-bottom: 32px; }
+.agency-form-heading h2 { font-size: 19px; font-weight: 550; letter-spacing: -.015em; }
+.agency-form-heading p { font-size: 14px; color: var(--muted-foreground); line-height: 1.7; margin-top: 8px; }
+.agency-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; min-width: 0; }
+.agency-field { min-width: 0; }.agency-field-wide { grid-column: 1 / -1; }
+.agency-field label { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.agency-field label span { color: var(--muted-foreground); font-size: 12px; font-weight: 400; }
+.agency-field input { width: 100%; min-height: 44px; border: 1px solid var(--border); background: var(--background); border-radius: 6px; padding: 10px 12px; font-size: 15px; }
+.agency-field input:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
+.agency-field input[aria-invalid=true] { border-color: var(--destructive); }
+.agency-field-error { color: var(--destructive); font-size: 14px; margin-top: 12px; line-height: 1.6; }
+.agency-feedback { font-size: 14px; margin-top: 24px; line-height: 1.6; }
+.agency-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid var(--border); padding-top: 24px; margin-top: 32px; }
+.agency-form button:disabled, .agency-fields:disabled { opacity: .65; }
+@media (max-width: 800px) { .agency-settings-grid { grid-template-columns: 1fr; gap: 28px; }.agency-settings-grid aside { max-width: 540px; }.workspace-content { padding-top: 32px; }.workspace-heading { align-items: flex-start; flex-wrap: wrap; } }
+@media (max-width: 480px) { .workspace-content { padding-inline: 16px; }.workspace-header { padding: 18px 16px; }.workspace-header .account-theme { gap: 12px; }.agency-form { padding: 24px 16px; }.agency-fields { grid-template-columns: 1fr; }.agency-form-footer { align-items: stretch; flex-direction: column-reverse; }.agency-form-footer .text-action { justify-content: center; }.agency-list li > a { padding: 16px; gap: 12px; }.agency-list .agency-owner { display: none; } }
