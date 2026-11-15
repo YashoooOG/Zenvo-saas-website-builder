@@ -38,7 +38,7 @@ export async function updateAgency(db: PrismaClient, actorId: string, input: unk
 
 export function listOwnedAgencies(db: PrismaClient, actorId: string) {
   return db.agency.findMany({ where: { ownerId: actorId, owner: { deletedAt: null } },
-    select: { id: true, name: true, country: true, businessEmail: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+    select: { id: true, name: true, country: true, businessEmail: true, logoUrl: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
 }
 
 export function getOwnedAgency(db: PrismaClient, actorId: string, id: string) {

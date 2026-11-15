@@ -45,6 +45,9 @@ model Agency {
   ownerId String @db.VarChar(191)
   owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   logoUrl String? @db.Text
+  logoKey String? @unique @db.VarChar(191)
+  logoVersion Int @default(0)
+  logoAssets AgencyLogoAsset[]
   businessEmail String? @db.VarChar(320)
   phone String? @db.VarChar(40)
   website String? @db.VarChar(2048)
@@ -63,6 +66,28 @@ model Agency {
   subAccounts SubAccount[]
   @@index([ownerId])
   @@unique([ownerId, creationKey])
+}
+
+enum LogoAssetStatus {
+  PENDING
+  ACTIVE
+  RETIRED
+  DELETED
+}
+
+model AgencyLogoAsset {
+  id String @id @default(cuid()) @db.VarChar(191)
+  agencyId String? @db.VarChar(191)
+  actorId String @db.VarChar(191)
+  agency Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  fileKey String? @unique @db.VarChar(191)
+  url String? @db.Text
+  status LogoAssetStatus @default(PENDING)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  @@index([agencyId, status])
+  @@index([actorId, createdAt])
+  @@index([status, createdAt])
 }
 
 model AgencyMembership {

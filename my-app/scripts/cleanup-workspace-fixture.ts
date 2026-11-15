@@ -16,6 +16,9 @@ if (profile.private_metadata?.zenvoAuthTest !== true || !profile.email_addresses
 const db = createDatabaseClient(process.env.DATABASE_URL);
 try {
   await db.$transaction(async tx => {
+    const remainingAssets = await tx.agencyLogoAsset.count({ where: { actorId: fixture.userId, status: { not: 'DELETED' } } });
+    if (remainingAssets) throw new Error('Remove fixture logos and finish storage cleanup before deleting this workspace.');
+    await tx.agencyLogoAsset.deleteMany({ where: { actorId: fixture.userId, status: 'DELETED' } });
     const user = await tx.user.findUnique({ where: { id: fixture.userId } });
     await tx.agency.deleteMany({ where: { ownerId: fixture.userId } });
     await tx.agencyMembership.deleteMany({ where: { userId: fixture.userId } });

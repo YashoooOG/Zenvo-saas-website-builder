@@ -73,8 +73,8 @@ material and the actual Clerk verifier. This does not establish external provide
 delivery. Stage 7 must also handle profiles whose webhook has not arrived during
 onboarding. See [Prisma and sync setup](PRISMA-AND-SYNC.md).
 
-Stage 7a (agency creation/settings) is implemented; awaiting the owner's commit.
-Stage 7b adds authorized logo uploads as the next checkpoint. Validation on
+Stage 7a (agency creation/settings) is committed as `ce93956`.
+Validation on
 November 15, 2026: additive migration, zero schema drift, TypeScript, ESLint,
 production build, eight agency tests, ten persistence regressions, and five
 authentication regressions passed. Browser checks covered real development
@@ -83,6 +83,16 @@ refresh persistence, stale-tab conflicts, separate form state, mobile layouts,
 and sign-out/rejection. Testing caught and fixed duplicate labels in retained
 routes and missing request-time boundaries around Prisma. Disposable Clerk and
 local database fixtures were removed. See [agency notes](AGENCIES.md).
+
+Stage 7b (agency logo uploads) is implemented; awaiting the owner's commit.
+Validation on November 15, 2026: additive migration, production build (including
+TypeScript), ESLint, ten logo tests, eight agency tests, ten persistence tests,
+and six authentication HTTP checks passed. A disposable Clerk account verified
+real UploadThing upload, replacement, decoded image dimensions, refresh
+persistence, removal, desktop light and mobile dark layouts, and sign-out.
+No browser errors were recorded. Both cloud files were confirmed absent after
+removal; the disposable workspace and identity were deleted. See
+[logo setup and lifecycle](AGENCY-LOGOS.md). Stage 8 is next after the commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

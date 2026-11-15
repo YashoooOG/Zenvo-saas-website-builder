@@ -58,3 +58,13 @@ test('client-supplied auth headers cannot impersonate a user', async () => {
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: 'Unauthorized' });
 });
+
+test('logo mutations reject anonymous requests before reading uploads or changing storage', async () => {
+  for (const method of ['POST', 'DELETE']) {
+    const response = await browserFetch(new URL('/api/agency/nonexistent/logo?version=0', base), {
+      method, headers: { Origin: base.origin }, redirect: 'manual', signal: AbortSignal.timeout(20000),
+    });
+    assert.equal(response.status, 401);
+    assert.match(response.headers.get('cache-control'), /no-store/);
+  }
+});
