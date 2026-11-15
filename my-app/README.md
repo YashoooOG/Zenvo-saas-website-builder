@@ -4,7 +4,7 @@ An agency platform being built in tested, reviewable stages. The intended produc
 
 ## Current status
 
-Stage 1 establishes the application foundation. Authentication, the database, dashboards, and payments are not implemented yet. The homepage remains the framework starter; the marketing page has its own implementation stage.
+The application foundation and local MySQL tooling are implemented. Authentication, application tables, dashboards, and payments are not implemented yet. The homepage remains the framework starter; the marketing page has its own implementation stage.
 
 This project adapts the Web Prodigies tutorial to the existing Next.js 16 stack. See [the implementation roadmap](docs/ROADMAP.md) for scope and verification gates.
 
@@ -25,6 +25,29 @@ bun run dev
 
 Open http://localhost:3000. No external services are required for Stage 1.
 If PowerShell cannot find Bun but it is installed in its default location, use `& "$env:USERPROFILE\.bun\bin\bun.exe" run dev`.
+
+## Local database
+
+Start Docker Desktop with its Linux engine, then run from `my-app`:
+
+```powershell
+bun run db:setup
+bun run db:up
+bun run db:check
+```
+
+This creates a MySQL 8.4 database on `127.0.0.1:3307`. The setup script generates
+credentials in ignored `.env.local`; existing configuration is preserved. The
+application uses the `zenvo` user, whose permissions are scoped to the `zenvo`
+database. Docker stores data in the `zenvo-local_mysql-data` volume.
+
+`bun run db:check` verifies authentication, the selected database, and a temporary
+write/read operation. It does not create permanent application tables. Prisma
+migrations are introduced in Stage 6.
+
+Use `bun run db:status` to inspect health and `bun run db:stop` to stop MySQL while
+retaining data. Run `bun run db:up` to start it again. Configuration tests run with
+`bun run test:db`. See [database setup and troubleshooting](docs/DATABASE.md).
 
 ## Verify changes
 

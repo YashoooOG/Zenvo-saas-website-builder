@@ -8,7 +8,7 @@ Each stage ends with validation and a user commit checkpoint. Larger stages can 
 
 ## Progress
 
-Stage 1 is implemented and verified; awaiting the project owner's commit.
+Stage 1 is committed as `834a08b`.
 Validation on November 15, 2026: ESLint (zero warnings), Next.js route type
 generation and TypeScript, production build, homepage HTTP 200 and Zenvo title,
 compiled stylesheet delivery, and unknown-route HTTP 404 all passed. The temporary
@@ -17,6 +17,14 @@ configuration stage. Real environment files remain ignored by Git.
 
 The build uses Webpack and Tailwind PostCSS after the original Turbopack CSS
 worker failed on this Windows environment. Framework versions remain unchanged.
+
+Stage 2 is implemented and verified; awaiting the project owner's commit.
+Validation on November 15, 2026: MySQL 8.4.13 container health, an authenticated
+query and temporary write/read as the application user, three configuration/setup
+tests, ESLint, TypeScript, and the production build all passed. The database is
+running on `127.0.0.1:3307` with data in `zenvo-local_mysql-data`. Generated local
+credentials are in ignored `.env.local`; the existing `.env` was preserved.
+No permanent application tables have been created. See [database instructions](DATABASE.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
