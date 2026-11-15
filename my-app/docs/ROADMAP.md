@@ -18,13 +18,24 @@ configuration stage. Real environment files remain ignored by Git.
 The build uses Webpack and Tailwind PostCSS after the original Turbopack CSS
 worker failed on this Windows environment. Framework versions remain unchanged.
 
-Stage 2 is implemented and verified; awaiting the project owner's commit.
+Stage 2 is committed as `fac251f`.
 Validation on November 15, 2026: MySQL 8.4.13 container health, an authenticated
 query and temporary write/read as the application user, three configuration/setup
 tests, ESLint, TypeScript, and the production build all passed. The database is
 running on `127.0.0.1:3307` with data in `zenvo-local_mysql-data`. Generated local
 credentials are in ignored `.env.local`; the existing `.env` was preserved.
 No permanent application tables have been created. See [database instructions](DATABASE.md).
+
+Stage 3 is implemented and verified; awaiting the project owner's commit.
+Clerk accepted the development key; lint, TypeScript, production build, and five
+HTTP authentication checks passed on November 15, 2026. Browser checks passed for
+email-code sign-in with a disposable development account, workspace access,
+session persistence after refresh, the authenticated session API, sign-out, and
+rejection after sign-out. Sign-up form rendering and keyboard navigation were
+checked, with no horizontal overflow at 390px and 1366px widths. The temporary
+test user was deleted afterward. New-account password registration, password
+recovery, and GitHub/Google OAuth were not exercised; the owner deferred personal
+acceptance testing until the complete project. See [authentication instructions](AUTHENTICATION.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

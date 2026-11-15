@@ -4,7 +4,10 @@ An agency platform being built in tested, reviewable stages. The intended produc
 
 ## Current status
 
-The application foundation and local MySQL tooling are implemented. Authentication, application tables, dashboards, and payments are not implemented yet. The homepage remains the framework starter; the marketing page has its own implementation stage.
+The application foundation, local MySQL tooling, and Clerk authentication are
+implemented and verified with a development test account. The
+homepage provides account entry links; the full marketing page is Stage 4.
+Application tables, agency management, dashboards, and payments come later.
 
 This project adapts the Web Prodigies tutorial to the existing Next.js 16 stack. See [the implementation roadmap](docs/ROADMAP.md) for scope and verification gates.
 
@@ -23,8 +26,12 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-Open http://localhost:3000. No external services are required for Stage 1.
+Open http://localhost:3000.
 If PowerShell cannot find Bun but it is installed in its default location, use `& "$env:USERPROFILE\.bun\bin\bun.exe" run dev`.
+
+Stage 3 requires a Clerk development application. Add its two keys to the
+existing `.env.local` before running the app or production build, then run
+`bun run auth:check`. See [authentication setup and acceptance checks](docs/AUTHENTICATION.md).
 
 ## Local database
 
