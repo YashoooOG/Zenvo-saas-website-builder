@@ -15,8 +15,10 @@ or other assignments. Removing agency membership cascades its assignments.
 
 Sub-account roles are ADMIN, MEMBER, and GUEST. All can read the current client
 workspace. Stage 11c lets ADMIN and MEMBER users upload/remove client images,
-while GUEST users can view and copy their links. Project and website capabilities
-will accompany those tools. Client roles never grant agency management or
+while GUEST users can view and copy their links. Stage 12a also allows ADMIN and
+MEMBER users to create project boards, manage lanes, and create/move tickets;
+GUEST users can read boards. Website capabilities will accompany those tools.
+Client roles never grant agency management or
 permission to assign other users.
 
 Assignment changes validate both the agency membership version and assignment

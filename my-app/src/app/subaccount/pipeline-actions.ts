@@ -1,0 +1,35 @@
+'use server';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { ZodError } from 'zod';
+import { getDb } from '@/lib/db';
+import { requireWorkspaceUser } from '@/lib/workspace-user';
+import { AgencyAccessError } from '@/lib/agency-access';
+import { createPipeline, mutatePipeline, PipelineConflict } from '@/lib/pipelines';
+export type BoardState = { message: string; success: boolean };
+function failure(error: unknown): BoardState {
+  if (error instanceof AgencyAccessError || error instanceof PipelineConflict) return { message: error.message, success: false };
+  if (error instanceof ZodError) return { message: 'Use 2–191 characters for names and titles, and no more than 5,000 for descriptions.', success: false };
+  console.error('Pipeline operation failed.');
+  return { message: 'We couldn’t save this board change. Please try again.', success: false };
+}
+export async function createPipelineAction(_state: BoardState, form: FormData): Promise<BoardState> {
+  const user = await requireWorkspaceUser();
+  let pipeline;
+  try { pipeline = await createPipeline(getDb(), user.id, { subAccountId: form.get('subAccountId'), name: form.get('name'), creationKey: form.get('creationKey') }); }
+  catch (error) { return failure(error); }
+  revalidatePath('/subaccount', 'layout');
+  redirect(`/subaccount/${pipeline.subAccountId}/pipelines/${pipeline.id}`);
+}
+export async function mutatePipelineAction(_state: BoardState, form: FormData): Promise<BoardState> {
+  const user = await requireWorkspaceUser();
+  const rawRevision = form.get('revision');
+  const operation = form.get('operation');
+  const fields = operation === 'add-lane' ? ['name'] : operation === 'rename-lane' ? ['laneId','name'] : operation === 'create-ticket' ? ['laneId','title','description'] : ['ticketId','laneId','direction'];
+  try {
+    await mutatePipeline(getDb(), user.id, { subAccountId: form.get('subAccountId'), pipelineId: form.get('pipelineId'), revision: typeof rawRevision === 'string' && /^\d+$/.test(rawRevision) ? Number(rawRevision) : NaN,
+      operation, ...Object.fromEntries(fields.map(key => [key, form.get(key)])) });
+  } catch (error) { return failure(error); }
+  revalidatePath('/subaccount', 'layout');
+  return { message: 'Board updated.', success: true };
+}

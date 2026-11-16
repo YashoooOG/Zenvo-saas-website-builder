@@ -164,7 +164,7 @@ console errors were recorded. All disposable browser fixtures were removed.
 Owners share invitation links manually; no automatic email is sent. Stage 11c
 adds the client media library. See [client access](CLIENT-ACCESS.md).
 
-Stage 11c (client image library) is implemented; awaiting the owner's commit.
+Stage 11c (client image library) is committed as `5b6740f`.
 Validation on November 16, 2026: additive migration, zero schema drift, production
 build including TypeScript, lint, and 28 automated checks passed. Browser checks
 covered real UploadThing upload/rendering, refresh persistence, search and no
@@ -174,6 +174,16 @@ confirmed the test image was deleted; all disposable identities and local record
 were removed. This library supports public website images, not private documents.
 Stage 12 begins pipelines and project management. See [media lifecycle and
 cleanup](MEDIA.md).
+
+Stage 12a (persistent project boards) is implemented; awaiting the owner's
+commit. Validation on November 17, 2026: additive migration, zero schema drift,
+production build including TypeScript, lint, and 22 automated checks passed.
+Browser verification covered board/ticket creation, same-lane ordering,
+cross-lane moves, lane rename/addition, reload persistence, 320px layout,
+guest read-only access, and sign-out. No browser console errors were recorded;
+disposable local and Clerk fixtures were removed. This checkpoint provides
+keyboard/touch movement controls. Stage 12b adds drag-and-drop and ticket editing/
+removal; contacts and values follow within Stage 12. See [project boards](PIPELINES.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
