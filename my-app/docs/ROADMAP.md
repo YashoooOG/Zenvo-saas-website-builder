@@ -175,8 +175,8 @@ were removed. This library supports public website images, not private documents
 Stage 12 begins pipelines and project management. See [media lifecycle and
 cleanup](MEDIA.md).
 
-Stage 12a (persistent project boards) is implemented; awaiting the owner's
-commit. Validation on November 17, 2026: additive migration, zero schema drift,
+Stage 12a (persistent project boards) is committed as `fe1e415`.
+Validation on November 17, 2026: additive migration, zero schema drift,
 production build including TypeScript, lint, and 22 automated checks passed.
 Browser verification covered board/ticket creation, same-lane ordering,
 cross-lane moves, lane rename/addition, reload persistence, 320px layout,
@@ -184,6 +184,17 @@ guest read-only access, and sign-out. No browser console errors were recorded;
 disposable local and Clerk fixtures were removed. This checkpoint provides
 keyboard/touch movement controls. Stage 12b adds drag-and-drop and ticket editing/
 removal; contacts and values follow within Stage 12. See [project boards](PIPELINES.md).
+
+Stage 12b (ticket drag-and-drop, editing, and removal) is implemented; awaiting
+the owner's commit. Validation on November 17, 2026: production build including
+TypeScript, lint, 11 pipeline tests, eight client-access tests, and seven HTTP
+authentication checks passed (26 total). Browser checks covered pointer moves
+into an empty lane, keyboard cross-lane moves and reordering, Escape cancellation,
+edit persistence, removal cancellation/confirmation, reload persistence, 320px
+layout and editing, guest read-only controls, and sign-out. No browser console
+errors were recorded. Disposable database records and Clerk identity were removed.
+No database migration is needed. Remaining Stage 12 work includes contacts,
+ticket values, and board/lane lifecycle controls.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

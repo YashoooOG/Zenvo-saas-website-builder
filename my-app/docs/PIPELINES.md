@@ -1,4 +1,4 @@
-# Project boards — Stage 12a
+# Project boards — Stages 12a–12b
 
 Open a client workspace → Project boards. Create a board to start with To do,
 In progress, and Done. Owners, agency admins, and assigned client ADMIN/MEMBER
@@ -6,13 +6,24 @@ users can add or rename lanes, create tickets with descriptions, and move them.
 Assigned GUEST users can read the board. Unassigned, deleted, and archived-client
 access is denied on the server as well as in the interface.
 
-This first checkpoint uses a destination selector plus Move up/Move down buttons,
+Tickets support pointer dragging using their handles and keyboard dragging:
+focus a handle, press Space, choose an insertion position with arrow keys, and
+press Space to drop or Escape to cancel. Left/right changes lanes; up/down
+chooses a position. Drop before a card or on the explicit lane-end target,
+including empty lanes. The highlighted target shows the insertion position.
+
+The board also retains a destination selector plus Move up/Move down buttons,
 usable by keyboard and touch. A cross-lane move appends to the destination lane;
 the ordering controls then place it where needed. Mobile boards stack their lanes;
 wider boards use a bounded, focusable horizontal scroll area.
 
-Drag-and-drop, ticket editing/removal, lane removal/reordering, board lifecycle
-controls, contacts, and monetary values are later Stage 12 checkpoints. No dummy
+Edit opens a dialog for title and description. Remove asks for explicit
+confirmation and permanently deletes the ticket, compacting its lane positions.
+Cancelling either dialog leaves stored data unchanged. Guests have no mutation
+controls and are denied these operations on the server.
+
+Lane removal/reordering, board lifecycle controls, contacts, and monetary values
+are later Stage 12 checkpoints. No dummy
 controls or fabricated project metrics are presented for those features.
 
 ## Saved ordering and concurrency
@@ -29,6 +40,16 @@ reads ticket order by position and ID, removes/inserts the selected ticket, and
 rewrites contiguous positions within one transaction. Cross-lane moves compact
 both source and destination. A boundary move that changes nothing preserves the
 revision. Concurrent requests at the same revision cannot both mutate the board.
+
+Drag placement submits the destination lane and optional next-ticket anchor.
+The server checks that anchor belongs to the destination, then inserts before it
+or appends when absent. Drag start and dialog opening capture the board revision,
+so stale gestures and edits cannot overwrite intervening changes. The board waits
+for the server response instead of optimistically changing order. A failed request
+offers reload; an edit error retains the draft in its dialog.
+
+The UI uses dnd-kit pointer and keyboard sensors with logical insertion targets;
+see the [keyboard sensor documentation](https://dndkit.com/legacy/api-documentation/sensors/keyboard/).
 
 Names and titles require 2–191 trimmed characters; descriptions allow up to 5,000.
 Workspaces support 20 boards; each board supports 20 lanes and 200 tickets in this
@@ -48,3 +69,13 @@ covered board/ticket creation, ticket reordering and cross-lane moves, lane rena
 and addition, reload persistence, a 320px layout without horizontal overflow,
 guest read-only controls, and sign-out. No browser console errors were recorded.
 Disposable local records, synthetic owner, and Clerk identity were removed.
+
+Stage 12b verification on November 17, 2026: production build including
+TypeScript, lint, 11 pipeline tests, eight client-access tests, and seven HTTP
+authentication checks passed (26 total). New server checks cover explicit
+placement, invalid anchors, stale edits, confirmed deletion, position compaction,
+and concurrent placement/edit requests. Browser checks passed for pointer and
+keyboard dragging, same-lane reordering, empty-lane drops, Escape cancellation,
+editing and reload persistence, removal cancel/confirm, mobile editing at 320px,
+guest controls, and sign-out. No browser console errors were recorded. Disposable
+local and Clerk fixtures were removed. This checkpoint requires no migration.

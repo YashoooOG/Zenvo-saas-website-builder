@@ -85,6 +85,59 @@ test('lane additions and renames persist with bounded counts', async () => {
   await db.lane.createMany({ data: Array.from({ length: 16 }, (_, i) => ({ subAccountId, pipelineId, name: `Limit lane ${i}`, position: i + 4 })) });
   await assert.rejects(mutatePipeline(db, owner, { ...await context(), operation: 'add-lane', name: 'Over limit' }), PipelineConflict);
 });
+test('drag placement supports before-ticket insertion and lane-end moves without duplicate positions', async () => {
+  const fresh = await createPipeline(db, owner, { subAccountId, name: 'Placement tests', creationKey: randomUUID() });
+  const lanes = (await getPipelineBoard(db, owner, subAccountId, fresh.id))!.pipeline.lanes;
+  const ctx = async () => ({ subAccountId, pipelineId: fresh.id, revision: (await db.pipeline.findUniqueOrThrow({ where: { id: fresh.id } })).revision });
+  for (const title of ['Alpha ticket','Beta ticket','Gamma ticket']) await mutatePipeline(db, owner, { ...await ctx(), operation: 'create-ticket', laneId: lanes[0].id, title, description: '' });
+  const tickets = (await getPipelineBoard(db, owner, subAccountId, fresh.id))!.pipeline.lanes[0].tickets;
+  await mutatePipeline(db, member, { ...await ctx(), operation: 'place-ticket', ticketId: tickets[2].id, laneId: lanes[0].id, beforeTicketId: tickets[0].id });
+  assert.deepEqual((await getPipelineBoard(db, owner, subAccountId, fresh.id))!.pipeline.lanes[0].tickets.map(ticket => ticket.id), [tickets[2].id,tickets[0].id,tickets[1].id]);
+  await mutatePipeline(db, member, { ...await ctx(), operation: 'place-ticket', ticketId: tickets[2].id, laneId: lanes[1].id, beforeTicketId: null });
+  await mutatePipeline(db, member, { ...await ctx(), operation: 'place-ticket', ticketId: tickets[0].id, laneId: lanes[1].id, beforeTicketId: tickets[2].id });
+  assert.deepEqual((await getPipelineBoard(db, owner, subAccountId, fresh.id))!.pipeline.lanes[1].tickets.map(ticket => ticket.id), [tickets[0].id,tickets[2].id]);
+  const unchanged = await ctx();
+  assert.equal(await mutatePipeline(db, owner, { ...unchanged, operation: 'place-ticket', ticketId: tickets[0].id, laneId: lanes[1].id, beforeTicketId: tickets[0].id }), unchanged.revision);
+  await assert.rejects(mutatePipeline(db, owner, { ...await ctx(), operation: 'place-ticket', ticketId: tickets[1].id, laneId: lanes[2].id, beforeTicketId: tickets[0].id }), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, guest, { ...await ctx(), operation: 'place-ticket', ticketId: tickets[0].id, laneId: lanes[0].id, beforeTicketId: null }), AgencyAccessError);
+  const positions = await db.ticket.findMany({ where: { pipelineId: fresh.id, laneId: lanes[1].id }, orderBy: { position: 'asc' }, select: { position: true } });
+  assert.deepEqual(positions.map(ticket => ticket.position), [0,1]);
+});
+test('editing preserves ticket identity and placement while rejecting stale or invalid details', async () => {
+  const ticket = await db.ticket.findFirstOrThrow({ where: { pipelineId, laneId }, orderBy: { position: 'asc' } });
+  const input = { ...await context(), operation: 'edit-ticket', ticketId: ticket.id, title: '  Revised project brief  ', description: 'Updated requirements' };
+  await mutatePipeline(db, member, input);
+  const updated = await db.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+  assert.equal(updated.title, 'Revised project brief'); assert.equal(updated.description, 'Updated requirements');
+  assert.equal(updated.laneId, ticket.laneId); assert.equal(updated.position, ticket.position); assert.equal(updated.value.toString(), ticket.value.toString());
+  await assert.rejects(mutatePipeline(db, owner, input), PipelineConflict);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, ...await context(), title: ' ' }));
+  await assert.rejects(mutatePipeline(db, guest, { ...input, ...await context() }), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, ...await context(), pipelineId: otherPipelineId }), AgencyAccessError);
+});
+test('ticket removal requires confirmation, compacts order, and is tenant scoped', async () => {
+  const ticket = await db.ticket.findFirstOrThrow({ where: { pipelineId, laneId }, orderBy: { position: 'asc' } });
+  const input = { ...await context(), operation: 'delete-ticket', ticketId: ticket.id, confirmed: true };
+  await assert.rejects(mutatePipeline(db, owner, { ...input, confirmed: false }));
+  await assert.rejects(mutatePipeline(db, guest, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, pipelineId: otherPipelineId }), AgencyAccessError);
+  await mutatePipeline(db, member, input);
+  assert.equal(await db.ticket.findUnique({ where: { id: ticket.id } }), null);
+  await assert.rejects(mutatePipeline(db, owner, input), PipelineConflict);
+  const remaining = await db.ticket.findMany({ where: { pipelineId, laneId }, orderBy: { position: 'asc' } });
+  assert.deepEqual(remaining.map(item => item.position), remaining.map((_item, index) => index));
+});
+test('a concurrent drag and edit cannot overwrite each other', async () => {
+  const ticket = await db.ticket.findFirstOrThrow({ where: { pipelineId, laneId } });
+  const current = await context();
+  const outcomes = await Promise.allSettled([
+    mutatePipeline(db, owner, { ...current, operation: 'place-ticket', ticketId: ticket.id, laneId: destinationId, beforeTicketId: null }),
+    mutatePipeline(db, member, { ...current, operation: 'edit-ticket', ticketId: ticket.id, title: 'Concurrent edit', description: '' }),
+  ]);
+  assert.equal(outcomes.filter(outcome => outcome.status === 'fulfilled').length, 1);
+  const rejected = outcomes.find(outcome => outcome.status === 'rejected');
+  assert.ok(rejected?.status === 'rejected' && rejected.reason instanceof PipelineConflict);
+});
 test('archived clients, revoked assignments, and deleted owners cannot mutate boards', async () => {
   await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: false } });
   assert.equal(await board(), null);

@@ -12,6 +12,9 @@ const mutationSchema = z.discriminatedUnion('operation', [
   scope.extend({ operation: z.literal('rename-lane'), laneId: id, name }).strict(),
   scope.extend({ operation: z.literal('create-ticket'), laneId: id, title: name, description: z.string().trim().max(5000) }).strict(),
   scope.extend({ operation: z.literal('move-ticket'), ticketId: id, laneId: id, direction: z.enum(['UP', 'DOWN', 'END']) }).strict(),
+  scope.extend({ operation: z.literal('place-ticket'), ticketId: id, laneId: id, beforeTicketId: id.nullable() }).strict(),
+  scope.extend({ operation: z.literal('edit-ticket'), ticketId: id, title: name, description: z.string().trim().max(5000) }).strict(),
+  scope.extend({ operation: z.literal('delete-ticket'), ticketId: id, confirmed: z.literal(true) }).strict(),
 ]);
 const options = { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted };
 export async function listPipelines(db: PrismaClient, actorId: string, subAccountId: string) {
@@ -47,7 +50,17 @@ export async function mutatePipeline(db: PrismaClient, actorId: string, input: u
     if (pipeline.revision !== data.revision) throw new PipelineConflict('This board changed in another tab. Reload before trying again.');
     const where = { subAccountId: data.subAccountId, pipelineId: data.pipelineId };
     const lanes = await tx.lane.findMany({ where, orderBy: [{ position: 'asc' }, { id: 'asc' }] });
-    if (data.operation === 'add-lane') {
+    if (data.operation === 'edit-ticket' || data.operation === 'delete-ticket') {
+      const ticket = await tx.ticket.findFirst({ where: { ...where, id: data.ticketId } });
+      if (!ticket) throw new AgencyAccessError('Ticket unavailable.');
+      if (data.operation === 'edit-ticket') {
+        await tx.ticket.update({ where: { id: ticket.id }, data: { title: data.title, description: data.description || null } });
+      } else {
+        await tx.ticket.delete({ where: { id: ticket.id } });
+        const remaining = await tx.ticket.findMany({ where: { ...where, laneId: ticket.laneId }, orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true } });
+        for (const [position, item] of remaining.entries()) await tx.ticket.update({ where: { id: item.id }, data: { position } });
+      }
+    } else if (data.operation === 'add-lane') {
       if (lanes.length >= 20) throw new PipelineConflict('This board has reached its 20-lane limit.');
       await tx.lane.create({ data: { ...where, name: data.name, position: (lanes.at(-1)?.position ?? -1) + 1 } });
     } else {
@@ -62,9 +75,20 @@ export async function mutatePipeline(db: PrismaClient, actorId: string, input: u
       } else {
         const ticket = await tx.ticket.findFirst({ where: { ...where, id: data.ticketId } });
         if (!ticket) throw new AgencyAccessError('Ticket unavailable.');
-        if (data.direction !== 'END' && ticket.laneId !== lane.id) throw new PipelineConflict('Choose a lane or move within the current lane.');
         const source = await tx.ticket.findMany({ where: { ...where, laneId: ticket.laneId }, orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true } });
-        if (lane.id === ticket.laneId) {
+        if (data.operation === 'place-ticket') {
+          const destination = lane.id === ticket.laneId ? source : await tx.ticket.findMany({ where: { ...where, laneId: lane.id }, orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true } });
+          if (data.beforeTicketId && !destination.some(item => item.id === data.beforeTicketId)) throw new AgencyAccessError('Drop target unavailable.');
+          if (data.beforeTicketId === ticket.id) return pipeline.revision;
+          const ordered = destination.filter(item => item.id !== ticket.id);
+          const index = data.beforeTicketId ? ordered.findIndex(item => item.id === data.beforeTicketId) : ordered.length;
+          ordered.splice(index, 0, { id: ticket.id });
+          if (lane.id === ticket.laneId && ordered.every((item, index) => item.id === source[index].id)) return pipeline.revision;
+          if (lane.id !== ticket.laneId) for (const [position, item] of source.filter(item => item.id !== ticket.id).entries()) await tx.ticket.update({ where: { id: item.id }, data: { position } });
+          for (const [position, item] of ordered.entries()) await tx.ticket.update({ where: { id: item.id }, data: { laneId: lane.id, position } });
+        } else if (data.direction !== 'END' && ticket.laneId !== lane.id) {
+          throw new PipelineConflict('Choose a lane or move within the current lane.');
+        } else if (lane.id === ticket.laneId) {
           const index = source.findIndex(item => item.id === ticket.id);
           const target = data.direction === 'END' ? source.length - 1 : index + (data.direction === 'UP' ? -1 : 1);
           if (target < 0 || target >= source.length || target === index) return pipeline.revision;
