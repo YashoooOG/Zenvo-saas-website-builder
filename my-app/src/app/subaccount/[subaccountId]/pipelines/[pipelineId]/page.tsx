@@ -12,5 +12,5 @@ export default async function Board({ params }: PageProps<'/subaccount/[subaccou
   if (!data) notFound();
   const { pipeline, access } = data;
   const count = pipeline.lanes.reduce((sum, lane) => sum + lane.tickets.length, 0);
-  return <><div className="workspace-heading"><div><p className="workspace-eyebrow">{access.name}</p><h1>{pipeline.name}</h1><p>{count} {count === 1 ? 'ticket' : 'tickets'} across {pipeline.lanes.length} lanes.</p></div><Link className="text-action" href={`/subaccount/${subaccountId}/pipelines`}>All boards</Link></div><PipelineBoard board={pipeline} subAccountId={subaccountId} editable={access.role !== 'GUEST'} /></>;
+  return <><div className="workspace-heading"><div><p className="workspace-eyebrow">{access.name}</p><h1>{pipeline.name}</h1><p>{count} {count === 1 ? 'ticket' : 'tickets'} across {pipeline.lanes.length} {pipeline.lanes.length === 1 ? 'lane' : 'lanes'}.</p></div><Link className="text-action" href={`/subaccount/${subaccountId}/pipelines`}>All boards</Link></div><PipelineBoard board={pipeline} subAccountId={subaccountId} editable={access.role !== 'GUEST'} /></>;
 }

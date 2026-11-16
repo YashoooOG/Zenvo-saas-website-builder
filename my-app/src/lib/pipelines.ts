@@ -8,6 +8,9 @@ const name = z.string().trim().min(2).max(191);
 const createSchema = z.object({ subAccountId: id, name, creationKey: z.uuid() }).strict();
 const scope = z.object({ subAccountId: id, pipelineId: id, revision: z.number().int().nonnegative() });
 const mutationSchema = z.discriminatedUnion('operation', [
+  scope.extend({ operation: z.literal('rename-board'), name }).strict(),
+  scope.extend({ operation: z.literal('move-lane'), laneId: id, direction: z.enum(['UP', 'DOWN']) }).strict(),
+  scope.extend({ operation: z.literal('delete-lane'), laneId: id, confirmed: z.literal(true) }).strict(),
   scope.extend({ operation: z.literal('add-lane'), name }).strict(),
   scope.extend({ operation: z.literal('rename-lane'), laneId: id, name }).strict(),
   scope.extend({ operation: z.literal('create-ticket'), laneId: id, title: name, description: z.string().trim().max(5000) }).strict(),
@@ -50,7 +53,9 @@ export async function mutatePipeline(db: PrismaClient, actorId: string, input: u
     if (pipeline.revision !== data.revision) throw new PipelineConflict('This board changed in another tab. Reload before trying again.');
     const where = { subAccountId: data.subAccountId, pipelineId: data.pipelineId };
     const lanes = await tx.lane.findMany({ where, orderBy: [{ position: 'asc' }, { id: 'asc' }] });
-    if (data.operation === 'edit-ticket' || data.operation === 'delete-ticket') {
+    if (data.operation === 'rename-board') {
+      await tx.pipeline.update({ where: { id: pipeline.id }, data: { name: data.name } });
+    } else if (data.operation === 'edit-ticket' || data.operation === 'delete-ticket') {
       const ticket = await tx.ticket.findFirst({ where: { ...where, id: data.ticketId } });
       if (!ticket) throw new AgencyAccessError('Ticket unavailable.');
       if (data.operation === 'edit-ticket') {
@@ -66,7 +71,18 @@ export async function mutatePipeline(db: PrismaClient, actorId: string, input: u
     } else {
       const lane = lanes.find(lane => lane.id === data.laneId);
       if (!lane) throw new AgencyAccessError('Lane unavailable.');
-      if (data.operation === 'rename-lane') {
+      if (data.operation === 'move-lane') {
+        const index = lanes.findIndex(item => item.id === lane.id);
+        const target = index + (data.direction === 'UP' ? -1 : 1);
+        if (target < 0 || target >= lanes.length) return pipeline.revision;
+        lanes.splice(index, 1); lanes.splice(target, 0, lane);
+        for (const [position, item] of lanes.entries()) await tx.lane.update({ where: { id: item.id }, data: { position } });
+      } else if (data.operation === 'delete-lane') {
+        if (lanes.length === 1) throw new PipelineConflict('Keep at least one lane on the board.');
+        if (await tx.ticket.count({ where: { ...where, laneId: lane.id } })) throw new PipelineConflict('Move all tickets out of this lane before removing it.');
+        await tx.lane.delete({ where: { id: lane.id } });
+        for (const [position, item] of lanes.filter(item => item.id !== lane.id).entries()) await tx.lane.update({ where: { id: item.id }, data: { position } });
+      } else if (data.operation === 'rename-lane') {
         await tx.lane.update({ where: { id: lane.id }, data: { name: data.name } });
       } else if (data.operation === 'create-ticket') {
         if (await tx.ticket.count({ where }) >= 200) throw new PipelineConflict('This board has reached its 200-ticket limit.');

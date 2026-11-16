@@ -185,8 +185,8 @@ disposable local and Clerk fixtures were removed. This checkpoint provides
 keyboard/touch movement controls. Stage 12b adds drag-and-drop and ticket editing/
 removal; contacts and values follow within Stage 12. See [project boards](PIPELINES.md).
 
-Stage 12b (ticket drag-and-drop, editing, and removal) is implemented; awaiting
-the owner's commit. Validation on November 17, 2026: production build including
+Stage 12b (ticket drag-and-drop, editing, and removal) is committed as `223d504`.
+Validation on November 17, 2026: production build including
 TypeScript, lint, 11 pipeline tests, eight client-access tests, and seven HTTP
 authentication checks passed (26 total). Browser checks covered pointer moves
 into an empty lane, keyboard cross-lane moves and reordering, Escape cancellation,
@@ -195,6 +195,15 @@ layout and editing, guest read-only controls, and sign-out. No browser console
 errors were recorded. Disposable database records and Clerk identity were removed.
 No database migration is needed. Remaining Stage 12 work includes contacts,
 ticket values, and board/lane lifecycle controls.
+
+Stage 12c (board renaming and lane management) is implemented; awaiting the
+owner's commit. Validation on November 17, 2026: production build, TypeScript,
+lint, 14 pipeline tests, eight client-access tests, and seven HTTP authentication
+checks passed (29 total). Browser verification covered board rename, saved lane
+order, populated-lane protection, required removal confirmation, empty-lane
+removal, persistence after reload, 320px controls, and sign-out. No browser console
+errors were recorded. Disposable local and Clerk fixtures were removed. No
+migration is required. Contacts and ticket values remain next within Stage 12.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

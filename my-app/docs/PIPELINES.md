@@ -1,4 +1,4 @@
-# Project boards — Stages 12a–12b
+# Project boards — Stages 12a–12c
 
 Open a client workspace → Project boards. Create a board to start with To do,
 In progress, and Done. Owners, agency admins, and assigned client ADMIN/MEMBER
@@ -22,7 +22,15 @@ confirmation and permanently deletes the ticket, compacting its lane positions.
 Cancelling either dialog leaves stored data unchanged. Guests have no mutation
 controls and are denied these operations on the server.
 
-Lane removal/reordering, board lifecycle controls, contacts, and monetary values
+Board settings lets editors rename a board. Manage lane provides Move earlier
+and Move later buttons, which also work on the stacked mobile layout. Removing
+an empty lane requires checking its explicit permanent-removal confirmation.
+Move tickets out first; populated lanes and the board's last lane cannot be
+removed. The server enforces these rules under the same lock and revision check
+as ticket writes, including concurrent ticket creation or movement. Reordering
+and removal compact lane positions without changing ticket details.
+
+Board archival/removal controls, contacts, and monetary values
 are later Stage 12 checkpoints. No dummy
 controls or fabricated project metrics are presented for those features.
 
@@ -79,3 +87,12 @@ keyboard dragging, same-lane reordering, empty-lane drops, Escape cancellation,
 editing and reload persistence, removal cancel/confirm, mobile editing at 320px,
 guest controls, and sign-out. No browser console errors were recorded. Disposable
 local and Clerk fixtures were removed. This checkpoint requires no migration.
+
+Stage 12c verification on November 17, 2026: 14 pipeline tests, eight client-access
+tests, seven HTTP authentication checks (29 total), production build, TypeScript,
+and lint passed. Added coverage includes board rename validation, guest and
+cross-client denial, stale requests, lane order compaction, boundary no-ops,
+confirmed removal, populated/last-lane protection, and removal racing ticket
+creation. Browser checks covered renamed headings, persisted ordering, required
+confirmation, empty-lane removal, preserved tickets, 320px controls, and sign-out.
+No browser console errors were recorded; disposable fixtures were removed.

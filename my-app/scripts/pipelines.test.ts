@@ -138,6 +138,59 @@ test('a concurrent drag and edit cannot overwrite each other', async () => {
   const rejected = outcomes.find(outcome => outcome.status === 'rejected');
   assert.ok(rejected?.status === 'rejected' && rejected.reason instanceof PipelineConflict);
 });
+test('board names validate and reject stale, guest, and cross-client changes', async () => {
+  const input = { ...await context(), operation: 'rename-board', name: '  Revised launch  ' };
+  await assert.rejects(mutatePipeline(db, guest, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, pipelineId: otherPipelineId }), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, name: ' ' }));
+  await mutatePipeline(db, member, input);
+  assert.equal((await board())!.pipeline.name, 'Revised launch');
+  assert.equal((await listPipelines(db, owner, subAccountId))!.pipelines.find(item => item.id === pipelineId)!.name, 'Revised launch');
+  await assert.rejects(mutatePipeline(db, owner, input), PipelineConflict);
+});
+
+test('lane ordering is contiguous, preserves tickets, and protects boundaries and access', async () => {
+  const original = (await board())!.pipeline.lanes;
+  const input = { ...await context(), operation: 'move-lane', laneId: original[0].id, direction: 'UP' };
+  assert.equal(await mutatePipeline(db, owner, input), input.revision);
+  await assert.rejects(mutatePipeline(db, guest, { ...input, direction: 'DOWN' }), AgencyAccessError);
+  const foreign = await db.lane.findFirstOrThrow({ where: { pipelineId: otherPipelineId } });
+  await assert.rejects(mutatePipeline(db, owner, { ...input, laneId: foreign.id }), AgencyAccessError);
+  await mutatePipeline(db, member, { ...input, direction: 'DOWN' });
+  const changed = (await board())!.pipeline.lanes;
+  assert.deepEqual(changed.map(item => item.id), [original[1].id, original[0].id, ...original.slice(2).map(item => item.id)]);
+  assert.deepEqual(changed[1].tickets, original[0].tickets);
+  const lanes = await db.lane.findMany({ where: { pipelineId }, orderBy: { position: 'asc' } });
+  assert.deepEqual(lanes.map(item => item.position), lanes.map((_item, index) => index));
+  await assert.rejects(mutatePipeline(db, owner, { ...input, direction: 'DOWN' }), PipelineConflict);
+});
+
+test('only confirmed empty lanes can be removed and concurrent ticket creation cannot lose data', async () => {
+  const fresh = await createPipeline(db, owner, { subAccountId, name: 'Lane lifecycle', creationKey: randomUUID() });
+  const lanes = (await getPipelineBoard(db, owner, subAccountId, fresh.id))!.pipeline.lanes;
+  const ctx = async () => ({ subAccountId, pipelineId: fresh.id, revision: (await db.pipeline.findUniqueOrThrow({ where: { id: fresh.id } })).revision });
+  const input = { ...await ctx(), operation: 'delete-lane', laneId: lanes[0].id, confirmed: true };
+  await assert.rejects(mutatePipeline(db, owner, { ...input, confirmed: false }));
+  await assert.rejects(mutatePipeline(db, guest, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, laneId }), AgencyAccessError);
+  const outcomes = await Promise.allSettled([
+    mutatePipeline(db, member, input),
+    mutatePipeline(db, owner, { subAccountId, pipelineId: fresh.id, revision: input.revision, operation: 'create-ticket', laneId: lanes[0].id, title: 'Keep this ticket', description: '' }),
+  ]);
+  assert.equal(outcomes.filter(item => item.status === 'fulfilled').length, 1);
+  const remaining = await db.lane.findMany({ where: { pipelineId: fresh.id }, orderBy: { position: 'asc' } });
+  assert.deepEqual(remaining.map(item => item.position), remaining.map((_item, index) => index));
+  if (remaining.some(item => item.id === lanes[0].id)) {
+    assert.equal(await db.ticket.count({ where: { laneId: lanes[0].id } }), 1);
+    await assert.rejects(mutatePipeline(db, owner, { ...input, ...await ctx() }), PipelineConflict);
+  }
+  for (const lane of remaining.slice(1)) await mutatePipeline(db, owner, { ...await ctx(), operation: 'delete-lane', laneId: lane.id, confirmed: true });
+  await assert.rejects(mutatePipeline(db, owner, { ...await ctx(), operation: 'delete-lane', laneId: remaining[0].id, confirmed: true }), PipelineConflict);
+  // Verify a populated lane is protected independently of the last-lane rule.
+  await mutatePipeline(db, owner, { ...await context(), operation: 'create-ticket', laneId, title: 'Protected ticket', description: '' });
+  await assert.rejects(mutatePipeline(db, owner, { ...await context(), operation: 'delete-lane', laneId, confirmed: true }), PipelineConflict);
+});
+
 test('archived clients, revoked assignments, and deleted owners cannot mutate boards', async () => {
   await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: false } });
   assert.equal(await board(), null);

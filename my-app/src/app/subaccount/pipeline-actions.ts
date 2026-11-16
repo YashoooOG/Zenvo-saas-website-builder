@@ -25,13 +25,14 @@ export async function mutatePipelineAction(_state: BoardState, form: FormData): 
   const user = await requireWorkspaceUser();
   const rawRevision = form.get('revision');
   const operation = form.get('operation');
-  const fields = operation === 'add-lane' ? ['name'] : operation === 'rename-lane' ? ['laneId','name'] : operation === 'create-ticket' ? ['laneId','title','description'] : operation === 'edit-ticket' ? ['ticketId','title','description'] : operation === 'delete-ticket' ? ['ticketId'] : operation === 'place-ticket' ? ['ticketId','laneId'] : ['ticketId','laneId','direction'];
+  const fields = operation === 'rename-board' || operation === 'add-lane' ? ['name'] : operation === 'move-lane' ? ['laneId','direction'] : operation === 'delete-lane' ? ['laneId'] : operation === 'rename-lane' ? ['laneId','name'] : operation === 'create-ticket' ? ['laneId','title','description'] : operation === 'edit-ticket' ? ['ticketId','title','description'] : operation === 'delete-ticket' ? ['ticketId'] : operation === 'place-ticket' ? ['ticketId','laneId'] : ['ticketId','laneId','direction'];
+  const removal = operation === 'delete-ticket' || operation === 'delete-lane';
   try {
-    if (operation === 'delete-ticket' && form.get('confirmed') !== 'yes') throw new PipelineConflict('Confirm ticket removal before continuing.');
+    if (removal && form.get('confirmed') !== 'yes') throw new PipelineConflict('Confirm removal before continuing.');
     await mutatePipeline(getDb(), user.id, { subAccountId: form.get('subAccountId'), pipelineId: form.get('pipelineId'), revision: typeof rawRevision === 'string' && /^\d+$/.test(rawRevision) ? Number(rawRevision) : NaN,
       operation, ...Object.fromEntries(fields.map(key => [key, form.get(key)])),
       ...(operation === 'place-ticket' ? { beforeTicketId: form.get('beforeTicketId') || null } : {}),
-      ...(operation === 'delete-ticket' ? { confirmed: true } : {}) });
+      ...(removal ? { confirmed: true } : {}) });
   } catch (error) { return failure(error); }
   revalidatePath('/subaccount', 'layout');
   return { message: 'Board updated.', success: true };
