@@ -19,6 +19,7 @@
     "test:invitations": "bun --env-file=.env.local test scripts/invitations.test.ts",
     "test:launchpad": "bun --env-file=.env.local test scripts/launchpad.test.ts",
     "test:subaccounts": "bun --env-file=.env.local test scripts/subaccounts.test.ts",
+    "test:client-access": "bun --env-file=.env.local test scripts/client-access.test.ts",
     "uploads:cleanup": "bun scripts/cleanup-logo-assets.ts",
     "test:webhook:http": "bun --env-file=.env.local test --timeout 30000 scripts/webhook-http.test.ts",
     "db:setup": "node scripts/setup-database.mjs",

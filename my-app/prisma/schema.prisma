@@ -132,6 +132,7 @@ model SubAccount {
   logoUrl String? @db.Text
   agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   memberships SubAccountMembership[]
+  invitations SubAccountInvitation[]
   pipelines Pipeline[]
   contacts Contact[]
   funnels Funnel[]
@@ -148,10 +149,29 @@ model SubAccountMembership {
   subAccountId String @db.VarChar(191)
   userId String @db.VarChar(191)
   role SubAccountRole @default(GUEST)
+  version String @default(uuid()) @db.VarChar(36)
   subAccount SubAccount @relation(fields: [agencyId, subAccountId], references: [agencyId, id], onDelete: Cascade)
   membership AgencyMembership @relation(fields: [agencyId, userId], references: [agencyId, userId], onDelete: Cascade)
   @@id([subAccountId, userId])
   @@index([agencyId, userId])
+}
+
+model SubAccountInvitation {
+  id String @id @default(cuid()) @db.VarChar(191)
+  agencyId String @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  subAccount SubAccount @relation(fields: [agencyId, subAccountId], references: [agencyId, id], onDelete: Cascade)
+  email String @db.VarChar(320)
+  role SubAccountRole @default(GUEST)
+  tokenHash String @unique @db.Char(64)
+  createdBy String @db.VarChar(191)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  expiresAt DateTime @db.DateTime(3)
+  revokedAt DateTime? @db.DateTime(3)
+  acceptedAt DateTime? @db.DateTime(3)
+  acceptedBy String? @db.VarChar(191)
+  @@index([agencyId, createdAt])
+  @@index([subAccountId, email])
 }
 
 model Pipeline {

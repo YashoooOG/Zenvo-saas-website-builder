@@ -21,10 +21,9 @@ ADMIN access without creating extra assignment records. Removing an agency
 membership cascades its client assignments. A deleted agency owner makes its
 client workspaces unavailable.
 
-Assignment management screens and client invitations are Stage 11b. Existing
-assignment records are enforced now, with fixtures covering all permission
-boundaries. Do not provision production assignments by editing the database.
-UploadThing media will follow separately. Client creation does not publish a
+Assignment management screens and client invitations are available in Stage 11b;
+see [client access](CLIENT-ACCESS.md). UploadThing media will follow separately.
+Client creation does not publish a
 site, allocate a subdomain, enable payments, or fabricate dashboard metrics.
 
 ## Persistence and concurrency

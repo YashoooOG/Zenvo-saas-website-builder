@@ -141,8 +141,8 @@ No browser console errors were recorded. The disposable agency and Clerk
 development identity were removed. No migration was required. Stage 11 client
 sub-accounts are next. See [Launchpad completion rules](LAUNCHPAD.md).
 
-Stage 11a (client workspace lifecycle) is implemented; awaiting the owner's
-commit. Validation on November 16, 2026: additive migration, zero schema drift,
+Stage 11a (client workspace lifecycle) is committed as `1ba1c07`.
+Validation on November 16, 2026: additive migration, zero schema drift,
 production build including TypeScript, lint, five sub-account integration tests,
 eight permission regressions, and six authentication checks passed. The latter
 now cover client list/detail and agency client routes. Browser verification
@@ -152,6 +152,17 @@ and sign-out. No browser console errors were recorded. Disposable local records
 and the Clerk identity were removed. Stage 11b adds assignment management and
 client invitations; media storage follows separately. See [client workspace
 access and lifecycle](SUBACCOUNTS.md).
+
+Stage 11b (client assignments and invitations) is implemented; awaiting the
+owner's commit. Validation on November 16, 2026: additive migration completed
+after correcting the invitation table collation, zero schema drift, production
+build including TypeScript, lint, and 34 automated checks passed. Browser checks
+covered assignment persistence and confirmed removal, invitation creation/copy/
+revocation, wrong-email denial, verified acceptance, guest entry after reload,
+agency denial, consumed-link rejection, 320px layout, and sign-out. No browser
+console errors were recorded. All disposable browser fixtures were removed.
+Owners share invitation links manually; no automatic email is sent. Stage 11c
+adds the client media library. See [client access](CLIENT-ACCESS.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
