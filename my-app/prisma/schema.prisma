@@ -137,6 +137,7 @@ model SubAccount {
   contacts Contact[]
   funnels Funnel[]
   media Media[]
+  mediaAssets MediaAsset[]
   domains CustomDomain[]
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
@@ -263,6 +264,20 @@ model Media {
   subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @db.DateTime(3)
   @@index([subAccountId])
+}
+
+model MediaAsset {
+  id String @id @default(cuid()) @db.VarChar(191)
+  subAccountId String? @db.VarChar(191)
+  actorId String @db.VarChar(191)
+  subAccount SubAccount? @relation(fields: [subAccountId], references: [id], onDelete: SetNull)
+  status LogoAssetStatus @default(PENDING)
+  fileKey String? @unique @db.VarChar(191)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  updatedAt DateTime @updatedAt @db.DateTime(3)
+  @@index([subAccountId, status])
+  @@index([actorId, createdAt])
+  @@index([status, createdAt])
 }
 
 model CustomDomain {

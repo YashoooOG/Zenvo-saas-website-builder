@@ -29,7 +29,7 @@ test('public home and authentication pages remain accessible', async () => {
 });
 
 test('signed-out document requests redirect to sign-in with a return URL', async () => {
-  for (const path of ['/agency', '/agency/nonexistent/clients', '/agency/nonexistent/clients/nonexistent/access', '/subaccount', '/subaccount/nonexistent', '/subaccount/invitations/invalid']) {
+  for (const path of ['/agency', '/agency/nonexistent/clients', '/agency/nonexistent/clients/nonexistent/access', '/subaccount', '/subaccount/nonexistent', '/subaccount/nonexistent/media', '/subaccount/invitations/invalid']) {
   const response = await request(path, { Accept: 'text/html' });
   assert.ok([302, 303, 307].includes(response.status));
   const location = new URL(response.headers.get('location'), base);
@@ -64,6 +64,16 @@ test('client-supplied auth headers cannot impersonate a user', async () => {
 test('logo mutations reject anonymous requests before reading uploads or changing storage', async () => {
   for (const method of ['POST', 'DELETE']) {
     const response = await browserFetch(new URL('/api/agency/nonexistent/logo?version=0', base), {
+      method, headers: { Origin: base.origin }, redirect: 'manual', signal: AbortSignal.timeout(20000),
+    });
+    assert.equal(response.status, 401);
+    assert.match(response.headers.get('cache-control'), /no-store/);
+  }
+});
+
+test('media mutations reject anonymous requests before reading uploads or deleting files', async () => {
+  for (const method of ['POST', 'DELETE']) {
+    const response = await browserFetch(new URL('/api/subaccount/nonexistent/media?id=nonexistent', base), {
       method, headers: { Origin: base.origin }, redirect: 'manual', signal: AbortSignal.timeout(20000),
     });
     assert.equal(response.status, 401);

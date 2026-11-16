@@ -153,8 +153,8 @@ and the Clerk identity were removed. Stage 11b adds assignment management and
 client invitations; media storage follows separately. See [client workspace
 access and lifecycle](SUBACCOUNTS.md).
 
-Stage 11b (client assignments and invitations) is implemented; awaiting the
-owner's commit. Validation on November 16, 2026: additive migration completed
+Stage 11b (client assignments and invitations) is committed as `1c6966b`.
+Validation on November 16, 2026: additive migration completed
 after correcting the invitation table collation, zero schema drift, production
 build including TypeScript, lint, and 34 automated checks passed. Browser checks
 covered assignment persistence and confirmed removal, invitation creation/copy/
@@ -163,6 +163,17 @@ agency denial, consumed-link rejection, 320px layout, and sign-out. No browser
 console errors were recorded. All disposable browser fixtures were removed.
 Owners share invitation links manually; no automatic email is sent. Stage 11c
 adds the client media library. See [client access](CLIENT-ACCESS.md).
+
+Stage 11c (client image library) is implemented; awaiting the owner's commit.
+Validation on November 16, 2026: additive migration, zero schema drift, production
+build including TypeScript, lint, and 28 automated checks passed. Browser checks
+covered real UploadThing upload/rendering, refresh persistence, search and no
+results, link copy, guest read-only access, 320px layout, removal cancel/confirm,
+and sign-out. No browser console errors were recorded. Provider verification
+confirmed the test image was deleted; all disposable identities and local records
+were removed. This library supports public website images, not private documents.
+Stage 12 begins pipelines and project management. See [media lifecycle and
+cleanup](MEDIA.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

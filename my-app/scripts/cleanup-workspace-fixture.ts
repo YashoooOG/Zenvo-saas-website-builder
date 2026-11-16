@@ -18,6 +18,9 @@ try {
   await db.$transaction(async tx => {
     const remainingAssets = await tx.agencyLogoAsset.count({ where: { actorId: fixture.userId, status: { not: 'DELETED' } } });
     if (remainingAssets) throw new Error('Remove fixture logos and finish storage cleanup before deleting this workspace.');
+    const mediaScope = { OR: [{ actorId: fixture.userId }, { subAccount: { agency: { ownerId: fixture.userId } } }] };
+    if (await tx.mediaAsset.count({ where: { ...mediaScope, status: { not: 'DELETED' } } })) throw new Error('Remove fixture media and finish storage cleanup before deleting this workspace.');
+    await tx.mediaAsset.deleteMany({ where: { ...mediaScope, status: 'DELETED' } });
     await tx.agencyLogoAsset.deleteMany({ where: { actorId: fixture.userId, status: 'DELETED' } });
     const user = await tx.user.findUnique({ where: { id: fixture.userId } });
     await tx.agency.deleteMany({ where: { ownerId: fixture.userId } });

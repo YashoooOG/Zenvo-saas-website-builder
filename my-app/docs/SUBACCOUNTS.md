@@ -22,7 +22,7 @@ membership cascades its client assignments. A deleted agency owner makes its
 client workspaces unavailable.
 
 Assignment management screens and client invitations are available in Stage 11b;
-see [client access](CLIENT-ACCESS.md). UploadThing media will follow separately.
+see [client access](CLIENT-ACCESS.md). Stage 11c adds the [image library](MEDIA.md).
 Client creation does not publish a
 site, allocate a subdomain, enable payments, or fabricate dashboard metrics.
 

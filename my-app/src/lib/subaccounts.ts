@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Prisma, type PrismaClient } from '../generated/prisma/client';
-import { AgencyAccessError, lockAgencyAccess } from './agency-access';
+import { AgencyAccessError, lockAgencyAccess, lockAgencyActors } from './agency-access';
 import { AgencyConflictError } from './agencies';
 
 const identity = z.object({ agencyId: z.string().min(1).max(191), name: z.string().trim().min(2).max(191) });
@@ -47,6 +47,15 @@ export async function createSubAccount(db: PrismaClient, actorId: string, input:
     const existing = await tx.subAccount.findUnique({ where: { agencyId_creationKey: { agencyId: data.agencyId, creationKey: data.creationKey } } });
     return existing ?? tx.subAccount.create({ data });
   }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+}
+
+export async function lockSubAccountWrite(tx: Prisma.TransactionClient, actorId: string, subAccountId: string) {
+  const account = await tx.subAccount.findUnique({ where: { id: subAccountId }, select: { agencyId: true } });
+  if (!account) throw new AgencyAccessError('Client workspace unavailable.');
+  await lockAgencyActors(tx, actorId, account.agencyId);
+  const access = await getSubAccountAccess(tx, actorId, subAccountId);
+  if (!access || access.role === 'GUEST') throw new AgencyAccessError('Client workspace unavailable.');
+  return access;
 }
 
 export async function updateSubAccount(db: PrismaClient, actorId: string, input: unknown) {

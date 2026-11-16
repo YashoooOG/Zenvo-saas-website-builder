@@ -14,9 +14,10 @@ only removes access to that client; it does not delete their agency membership
 or other assignments. Removing agency membership cascades its assignments.
 
 Sub-account roles are ADMIN, MEMBER, and GUEST. All can read the current client
-workspace. Editing capabilities will be enforced alongside the media, project,
-and website tools; this checkpoint does not claim those tools exist. Client roles
-never grant agency management or permission to assign other users.
+workspace. Stage 11c lets ADMIN and MEMBER users upload/remove client images,
+while GUEST users can view and copy their links. Project and website capabilities
+will accompany those tools. Client roles never grant agency management or
+permission to assign other users.
 
 Assignment changes validate both the agency membership version and assignment
 version under the existing user/agency lock order. Stale requests, including
