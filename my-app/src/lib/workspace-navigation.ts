@@ -9,7 +9,9 @@ export function currentWorkspaceAgency(pathname: string, agencies: WorkspaceAgen
 export function workspaceLinks(agency?: WorkspaceAgency) {
   return [
     { href: '/agency', label: 'All agencies', icon: 'agencies' as const },
+    { href: '/subaccount', label: 'Your client workspaces', icon: 'agencies' as const },
     ...(agency ? [{ href: `/agency/${agency.id}`, label: 'Overview', icon: 'overview' as const }] : []),
+    ...(agency ? [{ href: `/agency/${agency.id}/clients`, label: 'Clients', icon: 'team' as const }] : []),
     ...(agency && agency.role !== 'MEMBER' ? [{ href: `/agency/${agency.id}/launchpad`, label: 'Launchpad', icon: 'launchpad' as const }] : []),
     ...(agency && agency.role !== 'MEMBER' ? [{ href: `/agency/${agency.id}/settings`, label: 'Agency settings', icon: 'settings' as const }] : []),
     ...(agency?.role === 'OWNER' ? [{ href: `/agency/${agency.id}/team`, label: 'Team', icon: 'team' as const }] : []),

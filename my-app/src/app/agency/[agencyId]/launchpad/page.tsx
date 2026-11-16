@@ -24,6 +24,6 @@ export default async function AgencyLaunchpadPage({ params }: PageProps<'/agency
     <section className="launchpad-progress" aria-labelledby="launchpad-progress-title"><div><h2 id="launchpad-progress-title">{complete ? 'Your agency basics are ready' : 'A few steps to get started'}</h2><p>{launchpad.completed} of {launchpad.total} essential steps complete</p></div><progress aria-label="Agency basics progress" value={launchpad.completed} max={launchpad.total} /></section>
     <section className="launchpad-section" aria-labelledby="launchpad-essential"><h2 id="launchpad-essential">Agency essentials</h2><Steps steps={launchpad.required} /></section>
     <section className="launchpad-section" aria-labelledby="launchpad-optional"><h2 id="launchpad-optional">Make it yours <span>Optional</span></h2><Steps steps={launchpad.optional} /></section>
-    <p className="launchpad-next">Client workspaces and connected payments will be added to this checklist when those features are available. Completing your agency basics does not activate billing or publish a website.</p>
+    <p className="launchpad-next">Create client workspaces from Clients in your agency navigation. Connected payments will join this checklist when billing is available. Completing your agency basics does not activate billing or publish a website.</p>
   </>;
 }

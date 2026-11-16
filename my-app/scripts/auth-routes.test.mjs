@@ -29,11 +29,13 @@ test('public home and authentication pages remain accessible', async () => {
 });
 
 test('signed-out document requests redirect to sign-in with a return URL', async () => {
-  const response = await request('/agency', { Accept: 'text/html' });
+  for (const path of ['/agency', '/agency/nonexistent/clients', '/subaccount', '/subaccount/nonexistent']) {
+  const response = await request(path, { Accept: 'text/html' });
   assert.ok([302, 303, 307].includes(response.status));
   const location = new URL(response.headers.get('location'), base);
   assert.equal(location.pathname, '/sign-in');
-  assert.equal(new URL(location.searchParams.get('redirect_url')).pathname, '/agency');
+  assert.equal(new URL(location.searchParams.get('redirect_url')).pathname, path);
+  }
 });
 
 test('session API rejects signed-out requests and disables caching', async () => {

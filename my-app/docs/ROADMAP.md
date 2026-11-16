@@ -131,7 +131,7 @@ were removed. Owners manually share links; automatic email delivery is not
 configured. Client invitations remain tied to Stage 11 sub-account assignments.
 See [invitation setup and lifecycle](INVITATIONS.md).
 
-Stage 10 (agency Launchpad) is implemented; awaiting the owner's commit.
+Stage 10 (agency Launchpad) is committed as `eb366ba`.
 Validation on November 16, 2026: production build including TypeScript, lint,
 five Launchpad tests, eight permission tests, and six HTTP authentication checks
 passed. Browser checks verified the agency-creation redirect, initial progress,
@@ -140,6 +140,18 @@ sidebar context, a 320px layout without horizontal overflow, and sign-out.
 No browser console errors were recorded. The disposable agency and Clerk
 development identity were removed. No migration was required. Stage 11 client
 sub-accounts are next. See [Launchpad completion rules](LAUNCHPAD.md).
+
+Stage 11a (client workspace lifecycle) is implemented; awaiting the owner's
+commit. Validation on November 16, 2026: additive migration, zero schema drift,
+production build including TypeScript, lint, five sub-account integration tests,
+eight permission regressions, and six authentication checks passed. The latter
+now cover client list/detail and agency client routes. Browser verification
+covered creation, rename, archive, archived-entry rejection, restore, persisted
+details after reload, restored entry, 320px layout without horizontal overflow,
+and sign-out. No browser console errors were recorded. Disposable local records
+and the Clerk identity were removed. Stage 11b adds assignment management and
+client invitations; media storage follows separately. See [client workspace
+access and lifecycle](SUBACCOUNTS.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

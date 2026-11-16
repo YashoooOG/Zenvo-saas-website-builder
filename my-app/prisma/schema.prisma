@@ -127,6 +127,8 @@ model SubAccount {
   name String @db.VarChar(191)
   subdomain String? @unique @db.VarChar(63)
   enabled Boolean @default(true)
+  revision Int @default(0)
+  creationKey String? @db.VarChar(36)
   logoUrl String? @db.Text
   agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   memberships SubAccountMembership[]
@@ -138,6 +140,7 @@ model SubAccount {
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
   @@unique([agencyId, id])
+  @@unique([agencyId, creationKey])
 }
 
 model SubAccountMembership {
