@@ -15,6 +15,7 @@
     "test:persistence": "bun --env-file=.env.local test scripts/persistence.test.ts",
     "test:agencies": "bun --env-file=.env.local test scripts/agencies.test.ts",
     "test:logos": "bun --env-file=.env.local test scripts/agency-logos.test.ts",
+    "test:permissions": "bun --env-file=.env.local test scripts/permissions.test.ts",
     "uploads:cleanup": "bun scripts/cleanup-logo-assets.ts",
     "test:webhook:http": "bun --env-file=.env.local test --timeout 30000 scripts/webhook-http.test.ts",
     "db:setup": "node scripts/setup-database.mjs",

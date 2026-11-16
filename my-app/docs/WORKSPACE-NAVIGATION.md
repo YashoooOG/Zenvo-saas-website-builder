@@ -1,5 +1,9 @@
 # Workspace navigation and dialogs (Stage 8)
 
+Stage 9a adds role-aware agency overview, settings, and team links. Current
+authorization follows the [permission matrix](PERMISSIONS.md); owner-only notes
+below describe the original Stage 8 checkpoint.
+
 The agency layout now provides a persistent sidebar, current-agency context,
 searchable agency switcher, and mobile navigation. Links point to implemented
 agency listing, creation, and settings routes. Client sub-account navigation

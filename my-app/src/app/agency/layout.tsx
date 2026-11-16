@@ -3,12 +3,12 @@ import { Suspense } from 'react';
 import { ThemeSelect } from '@/components/theme-select';
 import { WorkspaceShell } from '@/components/agency/workspace-shell';
 import { requireWorkspaceUser } from '@/lib/workspace-user';
-import { listOwnedAgencies } from '@/lib/agencies';
+import { listAccessibleAgencies } from '@/lib/agency-access';
 import { getDb } from '@/lib/db';
 import '../agency.css';
 async function AgencyWorkspace({ children }: { children: React.ReactNode }) {
   const user = await requireWorkspaceUser();
-  const agencies = (await listOwnedAgencies(getDb(), user.id)).map(({ id, name, logoUrl }) => ({ id, name, logoUrl }));
+  const agencies = await listAccessibleAgencies(getDb(), user.id);
   return <WorkspaceShell agencies={agencies} accountControls={<><ThemeSelect /><UserButton /></>}>{children}</WorkspaceShell>;
 }
 export default function AgencyLayout({ children }: { children: React.ReactNode }) {

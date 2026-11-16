@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 import { getDb } from '@/lib/db';
-import { getOwnedAgency } from '@/lib/agencies';
+import { getAgencyAccess } from '@/lib/agency-access';
 import { cleanupLogoAssets, removeAgencyLogo, uploadAgencyLogo } from '@/lib/agency-logos';
 import { normalizeLogo, LogoError } from '@/lib/logo-image';
 import { createLogoStorage } from '@/lib/logo-storage';
@@ -18,7 +18,7 @@ async function handle(request: Request, context: Context) {
     requireSameOrigin(request);
     const { agencyId } = await context.params;
     const db = getDb();
-    if (!await getOwnedAgency(db, userId, agencyId)) throw new LogoError('Agency unavailable.', 404);
+    if (!await getAgencyAccess(db, userId, agencyId, 'settings')) throw new LogoError('Agency unavailable.', 404);
     let result;
     if (request.method === 'POST') {
       const { file, version } = await readLogoForm(request);

@@ -1,5 +1,9 @@
 # Agency logos (Stage 7b)
 
+Stage 9a expands logo access to owners and admins and rechecks that permission
+after upload. See the current [permission matrix](PERMISSIONS.md); the owner-only
+description below records the original Stage 7b checkpoint.
+
 Agency owners can upload, replace, and remove a logo in agency settings. Logos
 also appear in the agency list. The current owner-only policy matches Stage 7a;
 broader team permissions arrive in Stage 9.

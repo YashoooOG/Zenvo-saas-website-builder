@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from '../generated/prisma/client';
 import { LogoError } from './logo-image';
+import { AgencyAccessError, lockAgencyAccess } from './agency-access';
 
 export type LogoStorage = {
   upload: (bytes: Buffer, assetId: string) => Promise<{ key: string; url: string }>;
@@ -7,10 +8,8 @@ export type LogoStorage = {
 };
 
 async function lockOwner(tx: Prisma.TransactionClient, actorId: string, agencyId: string) {
-  const [user] = await tx.$queryRaw<Array<{ deletedAt: Date | null }>>`SELECT deletedAt FROM User WHERE id = ${actorId} FOR UPDATE`;
-  const agency = await tx.agency.findFirst({ where: { id: agencyId, ownerId: actorId } });
-  if (!user || user.deletedAt || !agency) throw new LogoError('Agency unavailable.', 404);
-  return agency;
+  try { return (await lockAgencyAccess(tx, actorId, agencyId, 'settings')).agency; }
+  catch (error) { if (error instanceof AgencyAccessError) throw new LogoError('Agency unavailable.', 404); throw error; }
 }
 const transactionOptions = { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted };
 

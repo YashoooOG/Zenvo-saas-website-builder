@@ -41,9 +41,9 @@ test('concurrent duplicate form submissions create only one agency', async () =>
   assert.equal(await db.agency.count({ where: { ownerId: owner, creationKey } }), 1);
 });
 
-test('non-owners cannot list, read, or update another agency, even with a membership', async () => {
+test('members cannot read owner-only details or update settings', async () => {
   const agency = await createAgency(db, owner, { ...fields, creationKey: randomUUID() });
-  await db.agencyMembership.create({ data: { agencyId: agency.id, userId: other, role: 'ADMIN' } });
+  await db.agencyMembership.create({ data: { agencyId: agency.id, userId: other, role: 'MEMBER' } });
   assert.deepEqual(await listOwnedAgencies(db, other), []);
   assert.equal(await getOwnedAgency(db, other, agency.id), null);
   await assert.rejects(updateAgency(db, other, { ...fields, id: agency.id, revision: 0, name: 'Hijacked' }), AgencyAccessError);

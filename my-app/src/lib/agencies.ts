@@ -1,7 +1,8 @@
 import { Prisma, type PrismaClient } from '../generated/prisma/client';
 import { createAgencySchema, updateAgencySchema } from './agency-validation';
+import { AgencyAccessError, lockAgencyAccess } from './agency-access';
 
-export class AgencyAccessError extends Error {}
+export { AgencyAccessError } from './agency-access';
 export class AgencyConflictError extends Error {}
 
 async function lockActiveUser(tx: Prisma.TransactionClient, actorId: string) {
@@ -25,11 +26,9 @@ export async function createAgency(db: PrismaClient, actorId: string, input: unk
 export async function updateAgency(db: PrismaClient, actorId: string, input: unknown) {
   const { id, revision, ...fields } = updateAgencySchema.parse(input);
   return db.$transaction(async tx => {
-    await lockActiveUser(tx, actorId);
-    const agency = await tx.agency.findFirst({ where: { id, ownerId: actorId } });
-    if (!agency) throw new AgencyAccessError('Agency unavailable.');
+    await lockAgencyAccess(tx, actorId, id, 'settings');
     const updated = await tx.agency.updateMany({
-      where: { id, ownerId: actorId, revision }, data: { ...fields, revision: { increment: 1 } },
+      where: { id, revision }, data: { ...fields, revision: { increment: 1 } },
     });
     if (!updated.count) throw new AgencyConflictError('This agency changed in another tab. Reload the page before saving again.');
     return tx.agency.findUniqueOrThrow({ where: { id } });

@@ -1,4 +1,11 @@
 .workspace-shell { min-height: 100vh; background: var(--background); }
+.agency-overview-links { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 24px; }
+.team-role-guide { padding: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 24px; font-size: 14px; line-height: 1.8; color: var(--muted-foreground); }
+.team-role-guide strong { color: var(--foreground); font-weight: 500; }.team-role-guide p + p { margin-top: 8px; }
+.team-list { display: grid; gap: 12px; }.team-member { display: flex; align-items: center; flex-wrap: wrap; gap: 20px; padding: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+.team-identity { flex: 1; min-width: 180px; overflow-wrap: anywhere; }.team-identity h2 { font-size: 16px; font-weight: 500; }.team-identity p { color: var(--muted-foreground); font-size: 14px; margin-top: 8px; }
+.team-member-form { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }.team-member-form select { min-height: 44px; border: 1px solid var(--border); border-radius: 6px; background: var(--background); padding: 8px 12px; font-size: 14px; }.team-member button:disabled { opacity: .5; cursor: not-allowed; }
+.team-confirm-actions { display: flex; justify-content: flex-end; align-items: center; gap: 24px; margin-top: 24px; }.team-member > [role] { flex-basis: 100%; margin: 0; }
 .workspace-body { display: grid; grid-template-columns: 248px minmax(0, 1fr); max-width: 1600px; margin-inline: auto; }
 .workspace-main-column { min-width: 0; }
 .workspace-brand-group { display: flex; align-items: center; gap: 12px; }

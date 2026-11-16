@@ -1,5 +1,8 @@
 # Agency onboarding and settings (Stage 7a)
 
+Historical checkpoint notes below. Stage 9a expands settings access to admins;
+see the current [permission matrix](PERMISSIONS.md).
+
 Stage 7 has two commit checkpoints: agency creation/settings here, then authorized
 logo uploads in Stage 7b. Team navigation and broader role permissions come later.
 

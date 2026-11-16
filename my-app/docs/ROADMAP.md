@@ -94,8 +94,8 @@ No browser errors were recorded. Both cloud files were confirmed absent after
 removal; the disposable workspace and identity were deleted. See
 [logo setup and lifecycle](AGENCY-LOGOS.md).
 
-Stage 8 (workspace navigation and shared dialogs) is implemented; awaiting the
-owner's commit. Production build including TypeScript, ESLint, eight agency
+Stage 8 (workspace navigation and shared dialogs) is committed as `086eea5`.
+Production build including TypeScript, ESLint, eight agency
 authorization/persistence tests, and six HTTP authentication regressions passed
 on November 15, 2026. Browser checks covered empty and populated switchers,
 case-insensitive search and no results, two-agency switching, current navigation,
@@ -105,6 +105,19 @@ layouts, unavailable-agency rejection, and sign-out. No browser errors were
 recorded. Disposable local agencies and the Clerk identity were removed.
 Sub-account navigation will accompany Stage 11; Stage 9 membership permissions
 are next. See [workspace navigation notes](WORKSPACE-NAVIGATION.md).
+
+Stage 9a (agency permissions and team management) is implemented; awaiting the
+owner's commit. Stage 9b will add invitations and acceptance. The additive
+membership-version migration and zero-drift schema comparison passed. Production
+build, TypeScript, lint, eight permission tests, eight agency tests, ten logo
+tests, ten persistence tests, and six HTTP authentication checks passed.
+Browser verification completed November 16, 2026: owner role changes persisted,
+removal confirmation/cancel/removal worked, member settings/team routes were
+denied, admins saved settings but could not read team data, and a 320px team
+layout had no horizontal overflow. Browser testing caught and fixed the removal
+submit value. Local database service was restored after interruption. Disposable
+agencies, memberships, synthetic users, and the Clerk identity were removed.
+See [permission matrix and concurrency rules](PERMISSIONS.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

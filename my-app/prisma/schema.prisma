@@ -94,6 +94,7 @@ model AgencyMembership {
   agencyId String @db.VarChar(191)
   userId String @db.VarChar(191)
   role AgencyRole @default(CLIENT)
+  version String @default(uuid()) @db.VarChar(36)
   agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
   subAccounts SubAccountMembership[]

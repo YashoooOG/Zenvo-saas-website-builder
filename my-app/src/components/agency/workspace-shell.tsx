@@ -4,7 +4,7 @@ import { createContext, useContext, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Building2, Check, ChevronsUpDown, Menu, Plus, Search, Settings } from 'lucide-react';
+import { Building2, Check, ChevronsUpDown, Menu, Plus, Search, Settings, LayoutDashboard, Users } from 'lucide-react';
 import { Brand } from '@/components/brand';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { currentWorkspaceAgency, workspaceLinks, type WorkspaceAgency } from '@/lib/workspace-navigation';
@@ -25,7 +25,7 @@ function AgencyMark({ agency }: { agency?: WorkspaceAgency }) {
 
 function Navigation({ agency, pathname, mobile = false }: { agency?: WorkspaceAgency; pathname: string; mobile?: boolean }) {
   const { close } = useWorkspaceDialogs();
-  const icons = { agencies: Building2, settings: Settings, create: Plus };
+  const icons = { agencies: Building2, settings: Settings, create: Plus, overview: LayoutDashboard, team: Users };
   return <nav aria-label={mobile ? 'Mobile workspace' : 'Workspace'} className="workspace-links">
     {workspaceLinks(agency).map(link => {
       const Icon = icons[link.icon];
@@ -41,7 +41,7 @@ function AgencySwitcher({ agencies, currentId }: { agencies: WorkspaceAgency[]; 
   return <><label className="workspace-search"><Search size={18} aria-hidden="true" /><span className="sr-only">Search agencies</span><input autoComplete="off" placeholder="Search agencies" value={query} onChange={event => setQuery(event.target.value)} /></label>
     <p className="sr-only" role="status">{filtered.length} {filtered.length === 1 ? 'agency' : 'agencies'} found</p>
     {filtered.length ? <ul className="workspace-agency-options">{filtered.map(agency => <li key={agency.id}>
-      <Link href={`/agency/${agency.id}/settings`} onClick={close} aria-current={agency.id === currentId ? 'true' : undefined}>
+      <Link href={`/agency/${agency.id}`} onClick={close} aria-current={agency.id === currentId ? 'true' : undefined}>
         <AgencyMark agency={agency} /><span>{agency.name}<small>{agency.id === currentId ? 'Current agency' : 'Agency workspace'}</small></span>{agency.id === currentId && <Check size={18} aria-hidden="true" />}
       </Link></li>)}</ul> : <p className="workspace-search-empty">{agencies.length ? 'No agencies match your search.' : 'Create your first agency to get started.'}</p>}
     <Link href="/agency/new" className="workspace-dialog-create" onClick={close}><Plus size={18} aria-hidden="true" />Create agency</Link>
@@ -63,7 +63,7 @@ export function WorkspaceShell({ agencies, accountControls, children }: { agenci
         <button type="button" className="workspace-switcher" aria-haspopup="dialog" aria-label={`Switch agency${agency ? `, current agency: ${agency.name}` : ''}`} onClick={event => open('switcher', event.currentTarget)}><AgencyMark agency={agency} /><span>{agency?.name ?? 'Your workspace'}<small>{agency ? 'Agency workspace' : `${agencies.length} ${agencies.length === 1 ? 'agency' : 'agencies'}`}</small></span><ChevronsUpDown size={16} aria-hidden="true" /></button>
         <Navigation agency={agency} pathname={pathname} />
         <p className="workspace-sidebar-note">A space for your agency.<br />A home for your client work.</p>
-      </aside><div className="workspace-main-column"><div className="workspace-context"><span>{agency ? agency.name : 'Your workspace'}</span><span aria-hidden="true">/</span><span>{pathname === '/agency/new' ? 'Create agency' : agency ? 'Settings' : 'Agencies'}</span>
+      </aside><div className="workspace-main-column"><div className="workspace-context"><span>{agency ? agency.name : 'Your workspace'}</span><span aria-hidden="true">/</span><span>{pathname === '/agency/new' ? 'Create agency' : agency ? pathname.endsWith('/settings') ? 'Settings' : pathname.endsWith('/team') ? 'Team' : 'Overview' : 'Agencies'}</span>
         <button type="button" className="workspace-mobile-switch" aria-haspopup="dialog" onClick={event => open('switcher', event.currentTarget)}>Switch agency</button></div>
         <main id="workspace-content" className="workspace-content" tabIndex={-1}>{children}</main>
       </div></div>
