@@ -22,13 +22,17 @@ export async function getAgencyAccess(db: Database, actorId: string, agencyId: s
 
 // Serialize mutations with user deletion, role changes, and other agency writes.
 // Every multi-user lock uses the same order to avoid lock inversion.
-export async function lockAgencyAccess(tx: Prisma.TransactionClient, actorId: string, agencyId: string, permission: AgencyPermission, extraUsers: string[] = []) {
+export async function lockAgencyActors(tx: Prisma.TransactionClient, actorId: string, agencyId: string, extraUsers: string[] = []) {
   const agency = await tx.agency.findUnique({ where: { id: agencyId }, select: { ownerId: true } });
   if (!agency) throw new AgencyAccessError('Agency unavailable.');
   for (const id of [...new Set([actorId, agency.ownerId, ...extraUsers])].sort()) {
     await tx.$queryRaw`SELECT id FROM User WHERE id = ${id} FOR UPDATE`;
   }
   await tx.$queryRaw`SELECT id FROM Agency WHERE id = ${agencyId} FOR UPDATE`;
+}
+
+export async function lockAgencyAccess(tx: Prisma.TransactionClient, actorId: string, agencyId: string, permission: AgencyPermission, extraUsers: string[] = []) {
+  await lockAgencyActors(tx, actorId, agencyId, extraUsers);
   const access = await getAgencyAccess(tx, actorId, agencyId, permission);
   if (!access) throw new AgencyAccessError('Agency unavailable.');
   return access;

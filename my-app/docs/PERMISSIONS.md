@@ -1,5 +1,8 @@
 # Agency permissions and team management (Stage 9a)
 
+Stage 9b adds [owner-created invitation links and verified-email acceptance](INVITATIONS.md).
+The remainder documents the Stage 9a permission checkpoint.
+
 This checkpoint establishes agency permissions and management of existing
 memberships. Invitations and acceptance follow in Stage 9b. Sub-account screens
 and assignment management remain Stage 11; a CLIENT agency membership alone

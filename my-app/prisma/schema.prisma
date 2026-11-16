@@ -64,6 +64,7 @@ model Agency {
   updatedAt DateTime @updatedAt @db.DateTime(3)
   memberships AgencyMembership[]
   subAccounts SubAccount[]
+  invitations AgencyInvitation[]
   @@index([ownerId])
   @@unique([ownerId, creationKey])
 }
@@ -101,6 +102,23 @@ model AgencyMembership {
   createdAt DateTime @default(now()) @db.DateTime(3)
   @@id([agencyId, userId])
   @@index([userId])
+}
+
+model AgencyInvitation {
+  id String @id @default(cuid()) @db.VarChar(191)
+  agencyId String @db.VarChar(191)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  email String @db.VarChar(320)
+  role AgencyRole
+  tokenHash String @unique @db.Char(64)
+  createdBy String @db.VarChar(191)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  expiresAt DateTime @db.DateTime(3)
+  revokedAt DateTime? @db.DateTime(3)
+  acceptedAt DateTime? @db.DateTime(3)
+  acceptedBy String? @db.VarChar(191)
+  @@index([agencyId, createdAt])
+  @@index([agencyId, email])
 }
 
 model SubAccount {

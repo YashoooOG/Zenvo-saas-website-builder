@@ -1,4 +1,7 @@
 .workspace-shell { min-height: 100vh; background: var(--background); }
+.team-invitations { margin-top: 40px; }.team-invitations > h2 { font-size: 22px; font-weight: 550; margin-bottom: 16px; }.team-invitations > p { color: var(--muted-foreground); font-size: 14px; line-height: 1.8; margin-bottom: 24px; }
+.team-invite-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; }.team-invite-form .agency-field:first-of-type { flex: 1; min-width: 180px; }.team-invite-form select { min-height: 44px; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; background: var(--card); }
+.invitation-link { display: grid; gap: 12px; margin-top: 16px; font-size: 14px; }.invitation-link input { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }.invitation-link button { justify-self: start; }
 .agency-overview-links { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 24px; }
 .team-role-guide { padding: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 24px; font-size: 14px; line-height: 1.8; color: var(--muted-foreground); }
 .team-role-guide strong { color: var(--foreground); font-weight: 500; }.team-role-guide p + p { margin-top: 8px; }

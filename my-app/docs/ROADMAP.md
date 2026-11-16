@@ -106,8 +106,8 @@ recorded. Disposable local agencies and the Clerk identity were removed.
 Sub-account navigation will accompany Stage 11; Stage 9 membership permissions
 are next. See [workspace navigation notes](WORKSPACE-NAVIGATION.md).
 
-Stage 9a (agency permissions and team management) is implemented; awaiting the
-owner's commit. Stage 9b will add invitations and acceptance. The additive
+Stage 9a (agency permissions and team management) is committed as `5d9f659`.
+The additive
 membership-version migration and zero-drift schema comparison passed. Production
 build, TypeScript, lint, eight permission tests, eight agency tests, ten logo
 tests, ten persistence tests, and six HTTP authentication checks passed.
@@ -118,6 +118,18 @@ layout had no horizontal overflow. Browser testing caught and fixed the removal
 submit value. Local database service was restored after interruption. Disposable
 agencies, memberships, synthetic users, and the Clerk identity were removed.
 See [permission matrix and concurrency rules](PERMISSIONS.md).
+
+Stage 9b (invitation links and acceptance) is implemented; awaiting the owner's
+commit. Validation on November 16, 2026: additive migration and zero schema drift,
+production build including TypeScript, lint, seven invitation tests, eight
+permission tests, eight agency tests, ten logo tests, and six HTTP authentication
+checks passed. Browser checks covered creating/copying/revoking a link, email
+mismatch denial, verified-primary-email acceptance, resulting Member access,
+refresh persistence, consumed-link rejection, 320px layout, and sign-out. No
+browser console errors were recorded. Disposable identities and database records
+were removed. Owners manually share links; automatic email delivery is not
+configured. Client invitations remain tied to Stage 11 sub-account assignments.
+See [invitation setup and lifecycle](INVITATIONS.md). Stage 10 Launchpad is next.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
