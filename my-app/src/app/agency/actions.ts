@@ -28,7 +28,7 @@ export async function createAgencyAction(_previous: AgencyFormState, formData: F
     id = agency.id;
   } catch (error) { return failure(error); }
   revalidatePath('/agency', 'layout');
-  redirect(`/agency/${id}/settings`);
+  redirect(`/agency/${id}/launchpad`);
 }
 
 export async function updateAgencyAction(previous: AgencyFormState, formData: FormData): Promise<AgencyFormState> {

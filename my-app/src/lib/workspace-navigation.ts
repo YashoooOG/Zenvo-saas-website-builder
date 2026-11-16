@@ -10,6 +10,7 @@ export function workspaceLinks(agency?: WorkspaceAgency) {
   return [
     { href: '/agency', label: 'All agencies', icon: 'agencies' as const },
     ...(agency ? [{ href: `/agency/${agency.id}`, label: 'Overview', icon: 'overview' as const }] : []),
+    ...(agency && agency.role !== 'MEMBER' ? [{ href: `/agency/${agency.id}/launchpad`, label: 'Launchpad', icon: 'launchpad' as const }] : []),
     ...(agency && agency.role !== 'MEMBER' ? [{ href: `/agency/${agency.id}/settings`, label: 'Agency settings', icon: 'settings' as const }] : []),
     ...(agency?.role === 'OWNER' ? [{ href: `/agency/${agency.id}/team`, label: 'Team', icon: 'team' as const }] : []),
     { href: '/agency/new', label: 'Create agency', icon: 'create' as const },

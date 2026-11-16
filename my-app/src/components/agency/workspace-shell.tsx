@@ -4,7 +4,7 @@ import { createContext, useContext, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Building2, Check, ChevronsUpDown, Menu, Plus, Search, Settings, LayoutDashboard, Users } from 'lucide-react';
+import { Building2, Check, ChevronsUpDown, Menu, Plus, Search, Settings, LayoutDashboard, Users, ListChecks } from 'lucide-react';
 import { Brand } from '@/components/brand';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { currentWorkspaceAgency, workspaceLinks, type WorkspaceAgency } from '@/lib/workspace-navigation';
@@ -25,7 +25,7 @@ function AgencyMark({ agency }: { agency?: WorkspaceAgency }) {
 
 function Navigation({ agency, pathname, mobile = false }: { agency?: WorkspaceAgency; pathname: string; mobile?: boolean }) {
   const { close } = useWorkspaceDialogs();
-  const icons = { agencies: Building2, settings: Settings, create: Plus, overview: LayoutDashboard, team: Users };
+  const icons = { agencies: Building2, settings: Settings, create: Plus, overview: LayoutDashboard, team: Users, launchpad: ListChecks };
   return <nav aria-label={mobile ? 'Mobile workspace' : 'Workspace'} className="workspace-links">
     {workspaceLinks(agency).map(link => {
       const Icon = icons[link.icon];
@@ -63,7 +63,7 @@ export function WorkspaceShell({ agencies, accountControls, children }: { agenci
         <button type="button" className="workspace-switcher" aria-haspopup="dialog" aria-label={`Switch agency${agency ? `, current agency: ${agency.name}` : ''}`} onClick={event => open('switcher', event.currentTarget)}><AgencyMark agency={agency} /><span>{agency?.name ?? 'Your workspace'}<small>{agency ? 'Agency workspace' : `${agencies.length} ${agencies.length === 1 ? 'agency' : 'agencies'}`}</small></span><ChevronsUpDown size={16} aria-hidden="true" /></button>
         <Navigation agency={agency} pathname={pathname} />
         <p className="workspace-sidebar-note">A space for your agency.<br />A home for your client work.</p>
-      </aside><div className="workspace-main-column"><div className="workspace-context"><span>{agency ? agency.name : 'Your workspace'}</span><span aria-hidden="true">/</span><span>{pathname === '/agency/new' ? 'Create agency' : agency ? pathname.endsWith('/settings') ? 'Settings' : pathname.endsWith('/team') ? 'Team' : 'Overview' : 'Agencies'}</span>
+      </aside><div className="workspace-main-column"><div className="workspace-context"><span>{agency ? agency.name : 'Your workspace'}</span><span aria-hidden="true">/</span><span>{pathname === '/agency/new' ? 'Create agency' : agency ? pathname.endsWith('/settings') ? 'Settings' : pathname.endsWith('/team') ? 'Team' : pathname.endsWith('/launchpad') ? 'Launchpad' : 'Overview' : 'Agencies'}</span>
         <button type="button" className="workspace-mobile-switch" aria-haspopup="dialog" onClick={event => open('switcher', event.currentTarget)}>Switch agency</button></div>
         <main id="workspace-content" className="workspace-content" tabIndex={-1}>{children}</main>
       </div></div>

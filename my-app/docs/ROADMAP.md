@@ -119,8 +119,8 @@ submit value. Local database service was restored after interruption. Disposable
 agencies, memberships, synthetic users, and the Clerk identity were removed.
 See [permission matrix and concurrency rules](PERMISSIONS.md).
 
-Stage 9b (invitation links and acceptance) is implemented; awaiting the owner's
-commit. Validation on November 16, 2026: additive migration and zero schema drift,
+Stage 9b (invitation links and acceptance) is committed as `3aa2fb6`.
+Validation on November 16, 2026: additive migration and zero schema drift,
 production build including TypeScript, lint, seven invitation tests, eight
 permission tests, eight agency tests, ten logo tests, and six HTTP authentication
 checks passed. Browser checks covered creating/copying/revoking a link, email
@@ -129,7 +129,17 @@ refresh persistence, consumed-link rejection, 320px layout, and sign-out. No
 browser console errors were recorded. Disposable identities and database records
 were removed. Owners manually share links; automatic email delivery is not
 configured. Client invitations remain tied to Stage 11 sub-account assignments.
-See [invitation setup and lifecycle](INVITATIONS.md). Stage 10 Launchpad is next.
+See [invitation setup and lifecycle](INVITATIONS.md).
+
+Stage 10 (agency Launchpad) is implemented; awaiting the owner's commit.
+Validation on November 16, 2026: production build including TypeScript, lint,
+five Launchpad tests, eight permission tests, and six HTTP authentication checks
+passed. Browser checks verified the agency-creation redirect, initial progress,
+saving contact details through settings, completed progress after reload,
+sidebar context, a 320px layout without horizontal overflow, and sign-out.
+No browser console errors were recorded. The disposable agency and Clerk
+development identity were removed. No migration was required. Stage 11 client
+sub-accounts are next. See [Launchpad completion rules](LAUNCHPAD.md).
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
