@@ -36,7 +36,8 @@
     "test:routing": "node --test scripts/tenant-routing.test.mjs",
     "test:routing:http": "node --test scripts/tenant-routes.test.mjs",
     "test:billing": "bun test scripts/billing.test.ts",
-    "billing:check": "bun --env-file=.env.local scripts/check-billing.ts"
+    "billing:check": "bun --env-file=.env.local scripts/check-billing.ts",
+    "test:subscriptions": "bun --env-file=.env.local test scripts/subscriptions.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

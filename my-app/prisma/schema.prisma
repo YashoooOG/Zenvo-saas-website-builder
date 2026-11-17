@@ -60,6 +60,7 @@ model Agency {
   creationKey String? @db.VarChar(36)
   stripeCustomerId String? @unique @db.VarChar(191)
   stripeConnectAccountId String? @unique @db.VarChar(191)
+  subscriptions AgencySubscription[]
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
   memberships AgencyMembership[]
@@ -67,6 +68,25 @@ model Agency {
   invitations AgencyInvitation[]
   @@index([ownerId])
   @@unique([ownerId, creationKey])
+}
+
+model AgencySubscription {
+  id String @id @db.VarChar(191)
+  agencyId String @db.VarChar(191)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  priceId String @db.VarChar(191)
+  status String @db.VarChar(32)
+  currentPeriodEnd DateTime @db.DateTime(3)
+  cancelAtPeriodEnd Boolean
+  collectionPaused Boolean
+  syncedAt DateTime @default(now()) @db.DateTime(3)
+  @@index([agencyId, syncedAt])
+}
+
+model StripeWebhookReceipt {
+  id String @id @db.VarChar(191)
+  type String @db.VarChar(64)
+  receivedAt DateTime @default(now()) @db.DateTime(3)
 }
 
 enum LogoAssetStatus {

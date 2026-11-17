@@ -20,6 +20,15 @@ const request = (path, headers = {}) => browserFetch(new URL(path, base), {
   headers, redirect: 'manual', signal: AbortSignal.timeout(20000),
 });
 
+test('Stripe webhook rejects unsigned requests without a sign-in redirect', async () => {
+  const response = await browserFetch(new URL('/api/stripe-webhook', base), {
+    method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(20000),
+  });
+  assert.ok([400, 503].includes(response.status));
+  assert.match(response.headers.get('cache-control'), /no-store/);
+  assert.equal(response.headers.get('location'), null);
+});
+
 test('public home and authentication pages remain accessible', async () => {
   for (const path of ['/', '/sign-in', '/sign-up']) {
     const response = await request(path, { Accept: 'text/html' });

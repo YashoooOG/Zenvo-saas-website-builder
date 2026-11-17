@@ -245,8 +245,7 @@ were not repeated; server tests enforce guest denial and mutation blocking.
 This completes the current project-board checkpoints. Stage 13 begins agency
 subscription billing in Stripe test mode; currency-aware totals remain future work.
 
-Stage 13a (owner-only billing plan preview) is implemented; awaiting the owner's
-commit. Production build including TypeScript, lint, seven billing validation tests,
+Stage 13a (owner-only billing plan preview) is committed as `1f9870f`. Production build including TypeScript, lint, seven billing validation tests,
 eight database permission tests, and seven HTTP authentication checks passed (22
 checks total). Signed-in desktop verification on November 17, 2026 confirmed the
 Billing navigation, breadcrumb, and unconfigured-plan fallback. The disposable
@@ -258,6 +257,22 @@ Checkout, subscription persistence, and webhook synchronization are next. See
 [BILLING.md](BILLING.md) for setup and supported price types. Mobile and non-owner
 UI checks were not repeated; server permission tests cover owner-only access and
 tenant isolation.
+
+Stage 13b (subscription persistence and verified webhooks) is implemented; awaiting
+commit. The additive `20261117030000_agency_subscriptions` migration is applied
+locally with zero schema drift. Production build including TypeScript, lint, nine
+subscription integration tests, seven plan tests, and eight HTTP authentication
+checks passed (24 total). The first migration attempt exposed a collation mismatch;
+only its two empty new tables were removed, then the corrected migration was applied.
+Subscription tests use SDK-signed synthetic events and real local MySQL, with an
+injected Stripe retrieval function. They cover signatures, replay/concurrency,
+retry, current-state reconciliation, and owner/tenant isolation. Desktop inspection
+on November 17, 2026 confirmed the stored past-due state, period end, scheduled
+cancellation, collection pause, and sync timestamp using a disposable fixture, which
+was removed afterward. Real Stripe delivery and mobile verification remain pending.
+Stripe variables remain empty at the user's request. Checkout and portal access
+are not implemented yet; checkout will build on this synchronization checkpoint.
+See [BILLING.md](BILLING.md) for event configuration and operational limitations.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
