@@ -7,6 +7,8 @@ import { getBillingPlan } from '@/lib/billing';
 import { getAgencySubscriptions, subscriptionStatusLabels } from '@/lib/subscriptions';
 import { checkoutConfiguration } from '@/lib/checkout';
 import { CheckoutForm } from '@/components/agency/checkout-form';
+import { PortalForm } from '@/components/agency/portal-form';
+import { portalConfiguration } from '@/lib/billing-portal';
 
 export const metadata: Metadata = { title: 'Agency billing' };
 
@@ -20,6 +22,8 @@ export default async function AgencyBillingPage({ params }: PageProps<'/agency/[
   const hasCurrentSubscription = subscriptions.some(subscription => !['canceled', 'incomplete_expired'].includes(subscription.status));
   let checkoutReady = false;
   try { checkoutConfiguration(process.env); checkoutReady = true; } catch { /* Optional provider setup. */ }
+  let portalReady = false;
+  try { portalConfiguration(process.env); portalReady = true; } catch { /* Optional provider setup. */ }
   return <>
     <div className="workspace-heading"><div><p className="workspace-eyebrow">Agency billing</p><h1>{access.agency.name}</h1><p>Review the plan available for your agency.</p></div><span className="agency-owner">Test mode</span></div>
     <div className="agency-settings-grid"><aside><h2>Your agency plan</h2><p>Only the agency owner can access billing.</p><p>Viewing this page does not start a subscription. Test checkout opens on Stripe; subscription status is confirmed separately.</p></aside>
@@ -35,6 +39,7 @@ export default async function AgencyBillingPage({ params }: PageProps<'/agency/[
         <p>Billing period ends {subscription.currentPeriodEnd.toISOString().slice(0, 10)} (UTC).{subscription.cancelAtPeriodEnd ? ' Cancellation is scheduled for the end of the billing period.' : ''}{subscription.collectionPaused ? ' Payment collection is paused.' : ''}</p>
         <p>Last synchronized {subscription.syncedAt.toISOString().replace('T', ' ').slice(0, 19)} UTC.</p>
       </div>)}</> : <p>No subscription has been confirmed for this agency.</p>}
+      {access.agency.stripeCustomerId && <><p>Manage payment details, invoices, and available subscription options on Stripe. Changes appear here after confirmation.</p>{portalReady ? <PortalForm agencyId={agencyId} /> : <p>Billing management setup is incomplete.</p>}</>}
     </section>
   </>;
 }

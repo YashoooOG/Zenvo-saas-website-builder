@@ -273,7 +273,7 @@ Stripe variables remain empty at the user's request. Checkout and portal access
 are not implemented yet; checkout will build on this synchronization checkpoint.
 See [BILLING.md](BILLING.md) for event configuration and operational limitations.
 
-Stage 13c (owner-only hosted test Checkout) is implemented; awaiting commit.
+Stage 13c (owner-only hosted test Checkout) is committed as `d205274`.
 The additive `20261117040000_agency_checkout` migration is applied locally with
 zero schema drift. Production build including TypeScript, lint, eleven checkout
 tests, nine subscription regressions, seven plan tests, and eight HTTP auth checks
@@ -286,6 +286,19 @@ hosted checkout, configured-button browser flow, payment, and webhook round-trip
 remain unverified. No paid entitlement is inferred from a return URL. Uncertain
 operations older than 23 hours stop for operator review; recovery tooling and
 production hardening remain future work. Customer portal access is next.
+
+Stage 13d (owner-only customer portal access) is implemented; awaiting commit.
+Production build including TypeScript, lint, eight portal tests, eleven checkout
+tests, nine subscription tests, seven plan tests, and eight HTTP auth checks passed
+(43 total). No migration is needed. Portal tests use real local MySQL with an
+injected provider and remove their fixtures. They cover active ownership, stored
+customer metadata, test-mode configuration, rejection of plan/quantity updates,
+verified redirects, and failure recovery. The portal does not depend on a valid
+plan price or an active subscription. Stripe configuration remains empty, so the
+configured browser flow, actual hosted portal operations, and resulting webhook
+delivery are unverified. Preview is running the new build on port 3115. Billing
+reconciliation and recovery tooling are next; production billing remains gated on
+real provider verification and operational hardening.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

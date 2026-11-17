@@ -4,7 +4,7 @@ The owner-only billing page at `/agency/[agencyId]/billing` shows the configured
 plan and persisted subscription status. Stage 13b added verified webhook ingestion
 and subscription tables. Stage 13c adds owner-only hosted test Checkout: it creates
 a Stripe customer and checkout session; completing that session creates the
-subscription. Customer portal access is a subsequent checkpoint.
+subscription. Stage 13d adds owner-only access to the Stripe customer portal.
 Stripe settings may remain empty: the webhook returns 503 and the workspace works.
 
 Apply `bun run db:migrate` before running this version. The additive migration
@@ -150,8 +150,50 @@ cover owner denial, empty configuration, plan validation, concurrent requests, l
 responses, active subscriptions, expired/completed sessions, safe redirects, and
 recovery cutoffs. These tests do not create real Stripe resources or establish that
 a real hosted payment and webhook round-trip succeeds. Verify that separately with
-test cards once Stripe is configured. Portal access and production billing remain
-future work.
+test cards once Stripe is configured. Production billing remains future work.
+
+## Customer portal
+
+An agency owner with a stored Stripe customer can open **Manage billing on Stripe**
+from the subscription-status section. This works independently of the plan preview
+and does not require a configured price, an active subscription, or a new checkout.
+It is available for canceled customers who need their invoices, too. Missing portal
+configuration shows an explanation without preventing workspace use.
+
+When ready, create and save a portal configuration in your Stripe sandbox. Enable
+the options you want to test, such as invoice history, payment-method updates, and
+subscription cancellation. **Disable subscription updates (plan and quantity
+changes)**: Zenvo currently reconciles only its single configured subscription price.
+Set the saved `bpc_...` ID as `STRIPE_PORTAL_CONFIGURATION_ID`. The explicit ID keeps
+the integration independent of changes to Stripe's default portal configuration.
+The test secret key, webhook signing secret, and `ZENVO_APP_URL` must also be set.
+Restricted keys need customer reads, portal-configuration reads, and portal-session
+writes. Leave these variables empty until you are ready to test Stripe.
+
+Every request checks the active agency owner while holding the agency lock. The
+server retrieves the mapped Stripe customer and verifies its ID, test mode, and
+`zenvoAgencyId` metadata. Deleted or mismatched customers are rejected. It verifies
+that the explicit portal configuration is active, in test mode, and has subscription
+updates disabled before creating a fresh session. The returned customer,
+configuration, mode, and return URL must match the request. Only HTTPS redirects to
+`billing.stripe.com` are accepted; custom portal domains are not supported yet.
+The session URL is neither stored nor logged. Session creation does not modify
+local subscription status or grant access; changes from the portal arrive through
+the existing subscription webhooks. Customer contact details edited in Stripe are
+not copied into Zenvo's agency profile.
+
+Portal sessions are temporary access links. Each click creates a fresh one; a lost
+response can safely be retried without creating a subscription or payment. Provider
+calls have ten-second timeouts without retries, inside a forty-second transaction.
+Transient provider failures return a generic message without provider payloads or
+session URLs. In production, test lock contention and hosted-session behavior.
+
+`bun run test:portal` uses real local MySQL and an injected provider to verify the
+owner boundary, customer and configuration matching, redirect validation, and retry
+behavior. Fixtures are removed automatically. Real hosted portal access, invoice
+viewing, payment-method changes, cancellation, and subsequent webhook delivery
+remain unverified while Stripe configuration is empty. No migration is needed for
+this checkpoint.
 
 ## References
 
@@ -162,6 +204,8 @@ future work.
 - [Retrieve current subscription state](https://docs.stripe.com/api/subscriptions/retrieve)
 - [Create a Checkout Session](https://docs.stripe.com/api/checkout/sessions/create)
 - [Stripe idempotency and retry retention](https://docs.stripe.com/api/idempotent_requests)
+- [Create a customer portal session](https://docs.stripe.com/api/customer_portal/sessions/create)
+- [Configure and integrate the customer portal](https://docs.stripe.com/customer-management/integrate-customer-portal)
 
 Currency formatting deliberately supports a small explicit set. JPY has zero
 decimal places; the other supported currencies have two. Tax copy reflects the
