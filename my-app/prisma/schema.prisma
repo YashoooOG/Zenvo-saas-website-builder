@@ -179,6 +179,7 @@ model Pipeline {
   id String @id @default(cuid()) @db.VarChar(191)
   subAccountId String @db.VarChar(191)
   name String @db.VarChar(191)
+  archived Boolean @default(false)
   revision Int @default(0)
   creationKey String? @db.VarChar(36)
   subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)

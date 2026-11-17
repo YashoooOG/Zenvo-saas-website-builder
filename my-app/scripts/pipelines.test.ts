@@ -315,6 +315,64 @@ test('confirmed unlinked contact removal preserves tickets and races safely with
   await db.ticket.updateMany({ where: { subAccountId }, data: { contactId: null } });
 });
 
+test('archiving preserves board contents, denies writes, and restoration resumes editing', async () => {
+  const original = (await board())!.pipeline;
+  const input = { ...await context(), operation: 'archive-board', confirmed: true };
+  await assert.rejects(mutatePipeline(db, guest, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, outsider, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, confirmed: false }));
+  await assert.rejects(mutatePipeline(db, owner, { ...input, pipelineId: otherPipelineId }), AgencyAccessError);
+  await mutatePipeline(db, member, input);
+  const archived = (await board())!.pipeline;
+  assert.equal(archived.archived, true); assert.deepEqual(archived.lanes, original.lanes);
+  assert.ok((await getPipelineBoard(db, guest, subAccountId, pipelineId))!.pipeline.archived);
+  assert.ok((await listPipelines(db, owner, subAccountId))!.pipelines.find(item => item.id === pipelineId)!.archived);
+  const current = await context();
+  assert.equal(await mutatePipeline(db, owner, { ...current, operation: 'archive-board', confirmed: true }), current.revision);
+  const ticket = original.lanes.flatMap(lane => lane.tickets)[0];
+  const contact = original.contacts[0];
+  const mutations = [
+    { operation: 'rename-board', name: 'Blocked' },
+    { operation: 'add-lane', name: 'Blocked' },
+    { operation: 'rename-lane', laneId, name: 'Blocked' },
+    { operation: 'move-lane', laneId, direction: 'DOWN' },
+    { operation: 'delete-lane', laneId, confirmed: true },
+    { operation: 'create-ticket', laneId, title: 'Blocked', description: '' },
+    { operation: 'edit-ticket', ticketId: ticket.id, title: 'Blocked', description: '' },
+    { operation: 'delete-ticket', ticketId: ticket.id, confirmed: true },
+    { operation: 'move-ticket', ticketId: ticket.id, laneId, direction: 'END' },
+    { operation: 'place-ticket', ticketId: ticket.id, laneId, beforeTicketId: null },
+    { operation: 'create-contact', name: 'Blocked', email: '' },
+    { operation: 'edit-contact', contactId: contact.id, name: 'Blocked', email: '' },
+    { operation: 'delete-contact', contactId: contact.id, confirmed: true },
+  ];
+  for (const mutation of mutations) await assert.rejects(mutatePipeline(db, owner, { ...current, ...mutation }), PipelineConflict);
+  assert.equal((await context()).revision, current.revision);
+  await assert.rejects(mutatePipeline(db, guest, { ...current, operation: 'restore-board' }), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, operation: 'restore-board', confirmed: undefined }));
+  await mutatePipeline(db, admin, { ...current, operation: 'restore-board' });
+  assert.equal((await board())!.pipeline.archived, false);
+  assert.deepEqual((await board())!.pipeline.lanes, original.lanes);
+  await mutatePipeline(db, member, { ...await context(), operation: 'rename-board', name: 'Restored board' });
+  assert.equal((await board())!.pipeline.name, 'Restored board');
+});
+
+test('archive races reject stale writes and archived boards retain workspace access rules', async () => {
+  const current = await context();
+  const results = await Promise.allSettled([
+    mutatePipeline(db, owner, { ...current, operation: 'archive-board', confirmed: true }),
+    mutatePipeline(db, admin, { ...current, operation: 'rename-board', name: 'Concurrent board' }),
+  ]);
+  assert.equal(results.filter(item => item.status === 'fulfilled').length, 1);
+  await assert.rejects(mutatePipeline(db, owner, { ...current, operation: 'restore-board' }), PipelineConflict);
+  if (!(await board())!.pipeline.archived) await mutatePipeline(db, owner, { ...await context(), operation: 'archive-board', confirmed: true });
+  await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: false } });
+  assert.equal(await board(), null);
+  await assert.rejects(mutatePipeline(db, owner, { ...await context(), operation: 'restore-board' }), AgencyAccessError);
+  await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: true } });
+  await mutatePipeline(db, owner, { ...await context(), operation: 'restore-board' });
+});
+
 test('archived clients, revoked assignments, and deleted owners cannot mutate boards', async () => {
   await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: false } });
   assert.equal(await board(), null);

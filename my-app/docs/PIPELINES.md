@@ -1,4 +1,4 @@
-# Project boards — Stages 12a–12e
+# Project boards — Stages 12a–12f
 
 Open a client workspace → Project boards. Create a board to start with To do,
 In progress, and Done. Owners, agency admins, and assigned client ADMIN/MEMBER
@@ -61,7 +61,26 @@ Moving a ticket preserves both its contact and value. Stale edits are rejected.
 Currency is not configured yet; these estimates are not payment amounts or
 recognized revenue. Existing tickets start at zero with no contact.
 
-Board archival/removal controls and currency-aware totals
+## Archiving and restoration
+
+Editors can expand Archive board and confirm making the board read-only.
+Archiving preserves lanes, ticket order, contact links, and values. Archived boards
+stay in the board list after active boards, with an Archived label, and still count
+toward the 20-board workspace limit. Guests can view archives but cannot archive
+or restore them. Restore board resumes editing without rebuilding the board.
+
+The additive `20261117020000_pipeline_archive` migration adds `Pipeline.archived`
+with a false default, keeping existing boards active. Run `bun run db:migrate`
+before running the updated app against another database. Every mutation checks
+archive status under the existing agency lock and board revision check. Only
+archive/restore operations are allowed against an archived board; all ticket,
+lane, name, and contact writes through that board are rejected. Concurrent archive
+and edit requests at the same revision cannot both succeed. Archived client
+workspaces remain inaccessible, including restoration requests.
+
+Contacts remain shared workspace records: contact edits made through an active
+board can update their names in archived boards. Archival is not an immutable
+historical snapshot. Permanent board removal and currency-aware totals
 are later Stage 12 checkpoints. No dummy
 controls or fabricated project metrics are presented for those features.
 
@@ -149,3 +168,13 @@ checks passed for edit propagation, blocked removal and cancellation, unlinking,
 confirmed removal, and reload persistence with ticket value preserved. The isolated
 verification workspace was removed; the user's account and session were retained.
 Mobile and guest UI checks were not repeated in this checkpoint.
+
+Stage 12f verification on November 17, 2026: migration deployment, zero schema
+drift, production build including TypeScript, lint, 23 pipeline tests, eight
+client-access tests, and seven authentication checks passed (38 total). Tests cover
+archive confirmation, every blocked mutation type, guest/cross-client denial,
+preserved contents, boundary no-ops, concurrent edits, stale restoration requests,
+and disabled-client access. Desktop UI checks verified archive confirmation,
+read-only controls, persistence after reload, archived list labeling, and restored
+editing/drag controls with the original ticket intact. The disposable local
+workspace was removed. Mobile and guest UI checks were not repeated.

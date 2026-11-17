@@ -11,6 +11,8 @@ const value = z.string().trim().regex(/^(0|[1-9]\d{0,14})(\.\d{1,4})?$/, 'Use a 
 const createSchema = z.object({ subAccountId: id, name, creationKey: z.uuid() }).strict();
 const scope = z.object({ subAccountId: id, pipelineId: id, revision: z.number().int().nonnegative() });
 const mutationSchema = z.discriminatedUnion('operation', [
+  scope.extend({ operation: z.literal('archive-board'), confirmed: z.literal(true) }).strict(),
+  scope.extend({ operation: z.literal('restore-board') }).strict(),
   scope.extend({ operation: z.literal('create-contact'), name, email: contactEmail }).strict(),
   scope.extend({ operation: z.literal('edit-contact'), contactId: id, name, email: contactEmail }).strict(),
   scope.extend({ operation: z.literal('delete-contact'), contactId: id, confirmed: z.literal(true) }).strict(),
@@ -29,13 +31,13 @@ const options = { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted
 export async function listPipelines(db: PrismaClient, actorId: string, subAccountId: string) {
   const access = await getSubAccountAccess(db, actorId, subAccountId);
   if (!access) return null;
-  const pipelines = await db.pipeline.findMany({ where: { subAccountId }, select: { id: true, name: true, _count: { select: { lanes: true } } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+  const pipelines = await db.pipeline.findMany({ where: { subAccountId }, select: { id: true, name: true, archived: true, _count: { select: { lanes: true } } }, orderBy: [{ archived: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }] });
   return { access, pipelines };
 }
 export async function getPipelineBoard(db: PrismaClient, actorId: string, subAccountId: string, pipelineId: string) {
   const access = await getSubAccountAccess(db, actorId, subAccountId);
   if (!access) return null;
-  const pipeline = await db.pipeline.findFirst({ where: { id: pipelineId, subAccountId }, select: { id: true, name: true, revision: true, lanes: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, name: true, tickets: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, title: true, description: true, contactId: true, value: true, contact: { select: { name: true } } } } } } } });
+  const pipeline = await db.pipeline.findFirst({ where: { id: pipelineId, subAccountId }, select: { id: true, name: true, archived: true, revision: true, lanes: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, name: true, tickets: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, title: true, description: true, contactId: true, value: true, contact: { select: { name: true } } } } } } } });
   if (!pipeline) return null;
   const contacts = await db.contact.findMany({ where: { subAccountId }, select: { id: true, name: true, email: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
   return { access, pipeline: { ...pipeline, contacts, lanes: pipeline.lanes.map(lane => ({ ...lane, tickets: lane.tickets.map(ticket => ({ ...ticket, value: ticket.value.toFixed(4) })) })) } };
@@ -59,6 +61,12 @@ export async function mutatePipeline(db: PrismaClient, actorId: string, input: u
     const pipeline = await tx.pipeline.findFirst({ where: { id: data.pipelineId, subAccountId: data.subAccountId } });
     if (!pipeline) throw new AgencyAccessError('Board unavailable.');
     if (pipeline.revision !== data.revision) throw new PipelineConflict('This board changed in another tab. Reload before trying again.');
+    if (data.operation === 'archive-board' || data.operation === 'restore-board') {
+      const archived = data.operation === 'archive-board';
+      if (pipeline.archived === archived) return pipeline.revision;
+      return (await tx.pipeline.update({ where: { id: pipeline.id }, data: { archived, revision: { increment: 1 } } })).revision;
+    }
+    if (pipeline.archived) throw new PipelineConflict('Restore this archived board before making changes.');
     const where = { subAccountId: data.subAccountId, pipelineId: data.pipelineId };
     const lanes = await tx.lane.findMany({ where, orderBy: [{ position: 'asc' }, { id: 'asc' }] });
     if (data.operation === 'edit-contact' || data.operation === 'delete-contact') {

@@ -221,8 +221,8 @@ isolated local verification workspace was removed; the owner's account and sessi
 were retained. Mobile and guest UI checks were not repeated in this checkpoint;
 server tests cover guest mutation denial and client isolation.
 
-Stage 12e (contact editing and removal) is implemented; awaiting the owner's
-commit. Production build including TypeScript, lint, 21 pipeline tests, eight
+Stage 12e (contact editing and removal) is committed as `ee0da63`.
+Production build including TypeScript, lint, 21 pipeline tests, eight
 client-access regressions, and seven authentication checks passed (36 total).
 Desktop UI verification on November 17, 2026 covered editing a contact, propagation
 to its linked ticket, blocking linked-contact removal, cancellation, unlinking,
@@ -232,6 +232,18 @@ Contact edits/removals invalidate revisions on all client boards to prevent stal
 cross-board writes. No database migration is required. Board archival is next;
 currency-aware totals remain a later checkpoint. Mobile/guest UI checks were not
 repeated; integration tests enforce guest denial and cross-client isolation.
+
+Stage 12f (board archival/restoration) is implemented; awaiting the owner's commit.
+The additive `20261117020000_pipeline_archive` migration was applied locally with
+zero schema drift. Production build including TypeScript, lint, 23 pipeline tests,
+eight client-access tests, and seven HTTP authentication checks passed (38 total).
+Desktop UI verification on November 17, 2026 covered explicit archive confirmation,
+read-only controls, preserved ticket contents after reload, the archived listing,
+and restoration of editing/drag controls. The disposable verification workspace
+was removed; the owner's account/session were retained. Mobile/guest UI checks
+were not repeated; server tests enforce guest denial and mutation blocking.
+This completes the current project-board checkpoints. Stage 13 begins agency
+subscription billing in Stripe test mode; currency-aware totals remain future work.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

@@ -9,7 +9,7 @@ import { ContactDialog } from './contact-dialog';
 import { mutatePipelineAction } from '@/app/subaccount/pipeline-actions';
 type Ticket = { id: string; title: string; description: string | null; contactId: string | null; value: string; contact: { name: string } | null };
 type Lane = { id: string; name: string; tickets: Ticket[] };
-type Board = { id: string; name: string; revision: number; lanes: Lane[]; contacts: { id: string; name: string; email: string | null }[] };
+type Board = { id: string; name: string; revision: number; archived: boolean; lanes: Lane[]; contacts: { id: string; name: string; email: string | null }[] };
 type Drop = { laneId: string; laneIndex: number; position: number; beforeTicketId: string | null; label: string };
 
 // Arrow keys select logical insertion slots rather than arbitrary pixel offsets.
@@ -67,7 +67,7 @@ export function PipelineBoard({ board, subAccountId, editable }: { board: Board;
   }
   return <>
     {editable && <details className="pipeline-details"><summary>Board settings</summary><PipelineForm key={board.name} hidden={{ ...hidden, operation: 'rename-board' }} fields={[{ name: 'name', label: 'Board name', initial: board.name }]} label="Save board name" disabled={pending || Boolean(active)} /></details>}
-    <p className="pipeline-hint">{editable ? 'Drag a ticket by its handle to place it before another ticket or at a lane’s end. With a focused handle, press Space, use arrow keys, then Space to drop or Escape to cancel. Movement buttons are also available.' : 'You have read-only access to this board.'}</p>
+    <p className="pipeline-hint">{editable ? 'Drag a ticket by its handle to place it before another ticket or at a lane’s end. With a focused handle, press Space, use arrow keys, then Space to drop or Escape to cancel. Movement buttons are also available.' : board.archived ? 'This board is archived and read-only.' : 'You have read-only access to this board.'}</p>
     {message && <p role={error ? 'alert' : 'status'} className={error ? 'agency-field-error' : 'agency-feedback'}>{message}{error && <> <button className="text-action" onClick={() => router.refresh()}>Reload board</button></>}</p>}
     <DndContext id={dndId} sensors={sensors} collisionDetection={args => args.pointerCoordinates ? pointerWithin(args) : closestCenter(args)} accessibility={{ screenReaderInstructions: { draggable: 'Press Space or Enter to pick up a ticket. Use up and down to choose a position, left and right to change lanes. Press Space or Enter to save, or Escape to cancel.' }, announcements: {
       onDragStart: event => `Picked up ${event.active.data.current?.title ?? 'ticket'}.`, onDragOver: event => event.over ? `Place ${event.over.data.current?.label ?? 'in this lane'}.` : 'Outside the board drop targets.', onDragEnd: event => event.over ? 'Dropped ticket. Saving position.' : 'Move cancelled.', onDragCancel: () => 'Move cancelled.',
@@ -82,6 +82,7 @@ export function PipelineBoard({ board, subAccountId, editable }: { board: Board;
       <DragOverlay dropAnimation={null}>{active && <div className="pipeline-ticket ticket-drag-preview"><h3>{active.title}</h3></div>}</DragOverlay>
     </DndContext>
     <section className="launchpad-section" aria-label="Workspace contacts"><h2>Workspace contacts</h2><p className="pipeline-hint">Contacts are shared across this client&apos;s boards. Add a contact here, then choose it when editing a ticket. Estimated values have no configured currency yet.</p>{board.contacts.length ? <ul className="pipeline-contacts">{board.contacts.map(contact => <li key={contact.id}><strong>{contact.name}</strong>{contact.email && <span>{contact.email}</span>}{editable && <ContactDialog contact={contact} scope={{ subAccountId, pipelineId: board.id, revision: board.revision }} disabled={pending || Boolean(active)} />}</li>)}</ul> : <p>No contacts yet.</p>}{editable && <PipelineForm hidden={{ ...hidden, operation: 'create-contact' }} fields={[{ name: 'name', label: 'Contact name' }, { name: 'email', label: 'Contact email (optional)', email: true }]} label="Add contact" reset disabled={pending || Boolean(active)} />}</section>
+    {editable && <details className="pipeline-details"><summary>Archive board</summary><p className="pipeline-hint">Keep this board for reference and stop edits. You can restore it later. Archived boards still count toward the 20-board workspace limit.</p><PipelineForm hidden={{ ...hidden, operation: 'archive-board' }} fields={[]} confirmation={`Archive ${board.name} and make it read-only.`} label="Archive board" disabled={pending || Boolean(active)} /></details>}
     {editable && <section className="launchpad-section"><h2>Add a lane</h2><PipelineForm hidden={{ ...hidden, operation: 'add-lane' }} fields={[{ name: 'name', label: 'New lane name' }]} label="Add lane" reset disabled={pending || Boolean(active)} /></section>}
   </>;
 }
