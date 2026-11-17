@@ -6,9 +6,9 @@ import { GripVertical } from 'lucide-react';
 import { PipelineForm } from './pipeline-forms';
 import { TicketDialog } from './ticket-dialog';
 import { mutatePipelineAction } from '@/app/subaccount/pipeline-actions';
-type Ticket = { id: string; title: string; description: string | null };
+type Ticket = { id: string; title: string; description: string | null; contactId: string | null; value: string; contact: { name: string } | null };
 type Lane = { id: string; name: string; tickets: Ticket[] };
-type Board = { id: string; name: string; revision: number; lanes: Lane[] };
+type Board = { id: string; name: string; revision: number; lanes: Lane[]; contacts: { id: string; name: string; email: string | null }[] };
 type Drop = { laneId: string; laneIndex: number; position: number; beforeTicketId: string | null; label: string };
 
 // Arrow keys select logical insertion slots rather than arbitrary pixel offsets.
@@ -38,7 +38,8 @@ function BoardTicket({ ticket, lane, laneIndex, index, board, subAccountId, edit
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({ id: ticket.id, disabled: !editable || pending, data: { laneId: lane.id, laneIndex, position: index, title: ticket.title } });
   const hidden = { subAccountId, pipelineId: board.id, revision: String(board.revision) };
   return <div ref={setNodeRef} className={`pipeline-ticket${isDragging ? ' is-dragging' : ''}`}><div className="ticket-title-row"><h3>{ticket.title}</h3>{editable && <button ref={setActivatorNodeRef} type="button" className="ticket-drag-handle" {...attributes} {...listeners} aria-label={`Drag ${ticket.title}`} disabled={pending}><GripVertical size={18} aria-hidden="true" /></button>}</div>{ticket.description && <p className="pipeline-description">{ticket.description}</p>}
-    {editable && <><TicketDialog scope={{ subAccountId, pipelineId: board.id, revision: board.revision }} ticket={ticket} disabled={pending} /><details className="pipeline-details"><summary>Move ticket<span className="sr-only"> {ticket.title}</span></summary><PipelineForm key={`${ticket.id}:${lane.id}`} hidden={{ ...hidden, operation: 'move-ticket', ticketId: ticket.id, direction: 'END' }} fields={[{ name: 'laneId', label: `Destination for ${ticket.title}`, initial: lane.id, options: board.lanes.map(item => ({ value: item.id, label: item.name })) }]} label="Move to lane end" compact disabled={pending} /><div className="pipeline-order"><PipelineForm hidden={{ ...hidden, operation: 'move-ticket', ticketId: ticket.id, laneId: lane.id, direction: 'UP' }} fields={[]} label={`Move up: ${ticket.title}`} disabled={pending || index === 0} compact /><PipelineForm hidden={{ ...hidden, operation: 'move-ticket', ticketId: ticket.id, laneId: lane.id, direction: 'DOWN' }} fields={[]} label={`Move down: ${ticket.title}`} disabled={pending || index === lane.tickets.length - 1} compact /></div></details></>}
+    <p className="pipeline-hint">{ticket.contact ? `Contact: ${ticket.contact.name}` : 'No contact'}<br />Estimated value: {ticket.value}</p>
+    {editable && <><TicketDialog scope={{ subAccountId, pipelineId: board.id, revision: board.revision }} ticket={ticket} contacts={board.contacts} disabled={pending} /><details className="pipeline-details"><summary>Move ticket<span className="sr-only"> {ticket.title}</span></summary><PipelineForm key={`${ticket.id}:${lane.id}`} hidden={{ ...hidden, operation: 'move-ticket', ticketId: ticket.id, direction: 'END' }} fields={[{ name: 'laneId', label: `Destination for ${ticket.title}`, initial: lane.id, options: board.lanes.map(item => ({ value: item.id, label: item.name })) }]} label="Move to lane end" compact disabled={pending} /><div className="pipeline-order"><PipelineForm hidden={{ ...hidden, operation: 'move-ticket', ticketId: ticket.id, laneId: lane.id, direction: 'UP' }} fields={[]} label={`Move up: ${ticket.title}`} disabled={pending || index === 0} compact /><PipelineForm hidden={{ ...hidden, operation: 'move-ticket', ticketId: ticket.id, laneId: lane.id, direction: 'DOWN' }} fields={[]} label={`Move down: ${ticket.title}`} disabled={pending || index === lane.tickets.length - 1} compact /></div></details></>}
   </div>;
 }
 export function PipelineBoard({ board, subAccountId, editable }: { board: Board; subAccountId: string; editable: boolean }) {
@@ -79,6 +80,7 @@ export function PipelineBoard({ board, subAccountId, editable }: { board: Board;
       </section>)}</div>
       <DragOverlay dropAnimation={null}>{active && <div className="pipeline-ticket ticket-drag-preview"><h3>{active.title}</h3></div>}</DragOverlay>
     </DndContext>
+    <section className="launchpad-section" aria-label="Workspace contacts"><h2>Workspace contacts</h2><p className="pipeline-hint">Contacts are shared across this client&apos;s boards. Add a contact here, then choose it when editing a ticket. Estimated values have no configured currency yet.</p>{board.contacts.length ? <ul className="pipeline-contacts">{board.contacts.map(contact => <li key={contact.id}><strong>{contact.name}</strong>{contact.email && <span>{contact.email}</span>}</li>)}</ul> : <p>No contacts yet.</p>}{editable && <PipelineForm hidden={{ ...hidden, operation: 'create-contact' }} fields={[{ name: 'name', label: 'Contact name' }, { name: 'email', label: 'Contact email (optional)', email: true }]} label="Add contact" reset disabled={pending || Boolean(active)} />}</section>
     {editable && <section className="launchpad-section"><h2>Add a lane</h2><PipelineForm hidden={{ ...hidden, operation: 'add-lane' }} fields={[{ name: 'name', label: 'New lane name' }]} label="Add lane" reset disabled={pending || Boolean(active)} /></section>}
   </>;
 }

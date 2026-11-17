@@ -5,9 +5,12 @@ import { AgencyAccessError } from './agency-access';
 export class PipelineConflict extends Error {}
 const id = z.string().min(1).max(191);
 const name = z.string().trim().min(2).max(191);
+// Match Decimal(19,4) without converting through a floating-point number.
+const value = z.string().trim().regex(/^(0|[1-9]\d{0,14})(\.\d{1,4})?$/, 'Use a non-negative value with at most 15 whole digits and 4 decimal places.');
 const createSchema = z.object({ subAccountId: id, name, creationKey: z.uuid() }).strict();
 const scope = z.object({ subAccountId: id, pipelineId: id, revision: z.number().int().nonnegative() });
 const mutationSchema = z.discriminatedUnion('operation', [
+  scope.extend({ operation: z.literal('create-contact'), name, email: z.string().trim().pipe(z.union([z.literal(''), z.email().max(320)])).transform(email => email.toLowerCase()) }).strict(),
   scope.extend({ operation: z.literal('rename-board'), name }).strict(),
   scope.extend({ operation: z.literal('move-lane'), laneId: id, direction: z.enum(['UP', 'DOWN']) }).strict(),
   scope.extend({ operation: z.literal('delete-lane'), laneId: id, confirmed: z.literal(true) }).strict(),
@@ -16,7 +19,7 @@ const mutationSchema = z.discriminatedUnion('operation', [
   scope.extend({ operation: z.literal('create-ticket'), laneId: id, title: name, description: z.string().trim().max(5000) }).strict(),
   scope.extend({ operation: z.literal('move-ticket'), ticketId: id, laneId: id, direction: z.enum(['UP', 'DOWN', 'END']) }).strict(),
   scope.extend({ operation: z.literal('place-ticket'), ticketId: id, laneId: id, beforeTicketId: id.nullable() }).strict(),
-  scope.extend({ operation: z.literal('edit-ticket'), ticketId: id, title: name, description: z.string().trim().max(5000) }).strict(),
+  scope.extend({ operation: z.literal('edit-ticket'), ticketId: id, title: name, description: z.string().trim().max(5000), contactId: id.nullable().optional(), value: value.optional() }).strict(),
   scope.extend({ operation: z.literal('delete-ticket'), ticketId: id, confirmed: z.literal(true) }).strict(),
 ]);
 const options = { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted };
@@ -29,8 +32,10 @@ export async function listPipelines(db: PrismaClient, actorId: string, subAccoun
 export async function getPipelineBoard(db: PrismaClient, actorId: string, subAccountId: string, pipelineId: string) {
   const access = await getSubAccountAccess(db, actorId, subAccountId);
   if (!access) return null;
-  const pipeline = await db.pipeline.findFirst({ where: { id: pipelineId, subAccountId }, select: { id: true, name: true, revision: true, lanes: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, name: true, tickets: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, title: true, description: true } } } } } });
-  return pipeline ? { access, pipeline } : null;
+  const pipeline = await db.pipeline.findFirst({ where: { id: pipelineId, subAccountId }, select: { id: true, name: true, revision: true, lanes: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, name: true, tickets: { orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true, title: true, description: true, contactId: true, value: true, contact: { select: { name: true } } } } } } } });
+  if (!pipeline) return null;
+  const contacts = await db.contact.findMany({ where: { subAccountId }, select: { id: true, name: true, email: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
+  return { access, pipeline: { ...pipeline, contacts, lanes: pipeline.lanes.map(lane => ({ ...lane, tickets: lane.tickets.map(ticket => ({ ...ticket, value: ticket.value.toFixed(4) })) })) } };
 }
 export async function createPipeline(db: PrismaClient, actorId: string, input: unknown) {
   const data = createSchema.parse(input);
@@ -53,13 +58,18 @@ export async function mutatePipeline(db: PrismaClient, actorId: string, input: u
     if (pipeline.revision !== data.revision) throw new PipelineConflict('This board changed in another tab. Reload before trying again.');
     const where = { subAccountId: data.subAccountId, pipelineId: data.pipelineId };
     const lanes = await tx.lane.findMany({ where, orderBy: [{ position: 'asc' }, { id: 'asc' }] });
-    if (data.operation === 'rename-board') {
+    if (data.operation === 'create-contact') {
+      if (await tx.contact.count({ where: { subAccountId: data.subAccountId } }) >= 500) throw new PipelineConflict('This workspace has reached its 500-contact limit.');
+      if (data.email && await tx.contact.findFirst({ where: { subAccountId: data.subAccountId, email: data.email } })) throw new PipelineConflict('A contact with this email already exists in this workspace.');
+      await tx.contact.create({ data: { subAccountId: data.subAccountId, name: data.name, email: data.email || null } });
+    } else if (data.operation === 'rename-board') {
       await tx.pipeline.update({ where: { id: pipeline.id }, data: { name: data.name } });
     } else if (data.operation === 'edit-ticket' || data.operation === 'delete-ticket') {
       const ticket = await tx.ticket.findFirst({ where: { ...where, id: data.ticketId } });
       if (!ticket) throw new AgencyAccessError('Ticket unavailable.');
       if (data.operation === 'edit-ticket') {
-        await tx.ticket.update({ where: { id: ticket.id }, data: { title: data.title, description: data.description || null } });
+        if (data.contactId && !await tx.contact.findFirst({ where: { id: data.contactId, subAccountId: data.subAccountId } })) throw new AgencyAccessError('Contact unavailable.');
+        await tx.ticket.update({ where: { id: ticket.id }, data: { title: data.title, description: data.description || null, ...(data.contactId !== undefined ? { contactId: data.contactId } : {}), ...(data.value !== undefined ? { value: new Prisma.Decimal(data.value) } : {}) } });
       } else {
         await tx.ticket.delete({ where: { id: ticket.id } });
         const remaining = await tx.ticket.findMany({ where: { ...where, laneId: ticket.laneId }, orderBy: [{ position: 'asc' }, { id: 'asc' }], select: { id: true } });

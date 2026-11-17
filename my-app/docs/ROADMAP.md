@@ -196,14 +196,30 @@ errors were recorded. Disposable database records and Clerk identity were remove
 No database migration is needed. Remaining Stage 12 work includes contacts,
 ticket values, and board/lane lifecycle controls.
 
-Stage 12c (board renaming and lane management) is implemented; awaiting the
-owner's commit. Validation on November 17, 2026: production build, TypeScript,
+Stage 12c (board renaming and lane management) is committed as `b0d805f`.
+Validation on November 17, 2026: production build, TypeScript,
 lint, 14 pipeline tests, eight client-access tests, and seven HTTP authentication
 checks passed (29 total). Browser verification covered board rename, saved lane
 order, populated-lane protection, required removal confirmation, empty-lane
 removal, persistence after reload, 320px controls, and sign-out. No browser console
 errors were recorded. Disposable local and Clerk fixtures were removed. No
 migration is required. Contacts and ticket values remain next within Stage 12.
+
+Stage 12d (contact creation, ticket linking, and estimated values) is implemented;
+awaiting the owner's commit. Production build including TypeScript and
+lint passed. Eighteen pipeline tests, eight client-access
+tests, and seven HTTP authentication checks passed (33 total) on November 17,
+2026. The local MySQL container was restarted before integration verification.
+Contacts are shared within one client workspace, capped at 500, with optional
+email and duplicate-email protection. Tickets can link/unlink contacts and store
+non-negative Decimal(19,4) estimates without floating-point conversion. No
+currency is assigned and these estimates are not billing totals. No migration is
+required. Contact editing/removal and board archival remain later checkpoints.
+Signed-in desktop UI verification passed for contact creation, contact selection,
+exact estimate entry, dialog scrolling, save, and persistence after reload. The
+isolated local verification workspace was removed; the owner's account and session
+were retained. Mobile and guest UI checks were not repeated in this checkpoint;
+server tests cover guest mutation denial and client isolation.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

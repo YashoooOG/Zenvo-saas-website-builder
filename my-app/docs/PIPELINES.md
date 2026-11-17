@@ -1,4 +1,4 @@
-# Project boards — Stages 12a–12c
+# Project boards — Stages 12a–12d
 
 Open a client workspace → Project boards. Create a board to start with To do,
 In progress, and Done. Owners, agency admins, and assigned client ADMIN/MEMBER
@@ -30,7 +30,27 @@ removed. The server enforces these rules under the same lock and revision check
 as ticket writes, including concurrent ticket creation or movement. Reordering
 and removal compact lane positions without changing ticket details.
 
-Board archival/removal controls, contacts, and monetary values
+## Contacts and estimated values
+
+The Workspace contacts section lists contacts for this client across its boards.
+Editors can add a name and optional email. Emails are trimmed and normalized to
+lowercase; duplicate non-empty emails within the workspace are rejected under
+the agency write lock, even when submitted from different boards. Empty emails
+are stored as null. Each workspace supports up to 500 contacts. Guests can read
+contacts but cannot create them. Contact editing/removal comes in a later checkpoint.
+
+After creating a ticket, open Edit to choose a contact and set its estimated
+value. Choose No contact to unlink it. The server verifies the contact belongs
+to the ticket's client. It rejects foreign IDs without changing any ticket fields.
+Values accept plain non-negative decimals, up to 15 whole digits and 4 decimal
+places. Exponents, grouping separators, negatives, and excess precision are
+rejected. Values remain strings between browser and server, become Prisma
+Decimal only when stored, and serialize back to fixed four-place strings.
+Moving a ticket preserves both its contact and value. Stale edits are rejected.
+Currency is not configured yet; these estimates are not payment amounts or
+recognized revenue. Existing tickets start at zero with no contact.
+
+Board archival/removal controls and currency-aware totals
 are later Stage 12 checkpoints. No dummy
 controls or fabricated project metrics are presented for those features.
 
@@ -96,3 +116,15 @@ confirmed removal, populated/last-lane protection, and removal racing ticket
 creation. Browser checks covered renamed headings, persisted ordering, required
 confirmation, empty-lane removal, preserved tickets, 320px controls, and sign-out.
 No browser console errors were recorded; disposable fixtures were removed.
+
+Stage 12d automated verification on November 17, 2026: production build including
+TypeScript and lint passed, along with 18 pipeline tests, eight
+client-access tests, and seven HTTP authentication checks passed (33 total).
+New checks cover optional/normalized emails, duplicate races across boards,
+workspace limits, contact isolation, guest denial, exact decimal round-trips,
+invalid amounts, atomic rejection, unlinking, and preservation after movement or
+partial edits. After the owner signed in, desktop UI verification passed for
+contact creation, contact selection, exact value entry, scrolling the edit dialog,
+saving, and persistence of both contact and value after reload. The isolated
+verification workspace was removed while retaining the owner's account and
+session. Mobile and guest UI checks were not repeated at this checkpoint.

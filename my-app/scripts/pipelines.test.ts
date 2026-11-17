@@ -191,6 +191,71 @@ test('only confirmed empty lanes can be removed and concurrent ticket creation c
   await assert.rejects(mutatePipeline(db, owner, { ...await context(), operation: 'delete-lane', laneId, confirmed: true }), PipelineConflict);
 });
 
+test('contacts are client scoped, validated, shared across boards, and duplicate email creation is serialized', async () => {
+  const input = { ...await context(), operation: 'create-contact', name: '  Alex Client  ', email: '  Alex@example.com  ' };
+  await assert.rejects(mutatePipeline(db, guest, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, outsider, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, email: 'invalid' }));
+  await mutatePipeline(db, member, input);
+  const contact = await db.contact.findFirstOrThrow({ where: { subAccountId, email: 'alex@example.com' } });
+  assert.equal(contact.name, 'Alex Client');
+  const other = await createPipeline(db, owner, { subAccountId, name: 'Shared contacts', creationKey: randomUUID() });
+  assert.ok((await getPipelineBoard(db, owner, subAccountId, other.id))!.pipeline.contacts.some(item => item.id === contact.id));
+  assert.equal((await getPipelineBoard(db, owner, siblingId, otherPipelineId))!.pipeline.contacts.length, 0);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, ...await context(), email: 'ALEX@example.com' }), PipelineConflict);
+  const concurrent = { ...await context(), operation: 'create-contact', name: 'Jamie Client', email: 'jamie@example.com' };
+  const results = await Promise.allSettled([
+    mutatePipeline(db, owner, concurrent),
+    mutatePipeline(db, admin, { ...concurrent, pipelineId: other.id, revision: other.revision }),
+  ]);
+  assert.equal(results.filter(item => item.status === 'fulfilled').length, 1);
+  assert.equal(await db.contact.count({ where: { subAccountId, email: 'jamie@example.com' } }), 1);
+});
+
+test('ticket contact and exact decimal values persist, survive moves, and can be cleared', async () => {
+  const contact = await db.contact.findFirstOrThrow({ where: { subAccountId } });
+  const ticket = await db.ticket.findFirstOrThrow({ where: { pipelineId } });
+  const input = { ...await context(), operation: 'edit-ticket', ticketId: ticket.id, title: ticket.title, description: '', contactId: contact.id, value: '999999999999999.1234' };
+  await mutatePipeline(db, member, input);
+  let stored = await db.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+  assert.equal(stored.value.toFixed(4), input.value); assert.equal(stored.contactId, contact.id);
+  await mutatePipeline(db, owner, { ...await context(), operation: 'edit-ticket', ticketId: ticket.id, title: ticket.title, description: 'Only the description changes' });
+  stored = await db.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+  assert.equal(stored.value.toFixed(4), input.value); assert.equal(stored.contactId, contact.id);
+  await mutatePipeline(db, owner, { ...await context(), operation: 'move-ticket', ticketId: ticket.id, laneId: destinationId, direction: 'END' });
+  stored = await db.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+  assert.equal(stored.value.toFixed(4), input.value); assert.equal(stored.contactId, contact.id);
+  const read = (await board())!.pipeline.lanes.flatMap(lane => lane.tickets).find(item => item.id === ticket.id)!;
+  assert.equal(read.value, input.value); assert.equal(read.contact?.name, contact.name);
+  await assert.rejects(mutatePipeline(db, owner, input), PipelineConflict);
+  await mutatePipeline(db, owner, { ...input, ...await context(), contactId: null, value: '0' });
+  stored = await db.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+  assert.equal(stored.contactId, null); assert.equal(stored.value.toString(), '0');
+});
+
+test('invalid amounts and foreign contacts reject the entire ticket edit', async () => {
+  const foreign = await db.contact.create({ data: { subAccountId: siblingId, name: 'Other client contact' } });
+  const ticket = await db.ticket.findFirstOrThrow({ where: { pipelineId } });
+  const input = { ...await context(), operation: 'edit-ticket', ticketId: ticket.id, title: 'Must not be saved', description: '', value: '12.3400' };
+  await assert.rejects(mutatePipeline(db, guest, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, contactId: foreign.id }), AgencyAccessError);
+  for (const value of ['-1', '1e3', 'NaN', '1.00001', '1000000000000000', '01', '', '1,000', 12.34]) await assert.rejects(mutatePipeline(db, owner, { ...input, value }));
+  assert.equal((await db.ticket.findUniqueOrThrow({ where: { id: ticket.id } })).title, ticket.title);
+  assert.equal((await context()).revision, input.revision);
+});
+
+test('contact creation accepts an omitted email and enforces the workspace limit', async () => {
+  const ctx = async () => ({ subAccountId: siblingId, pipelineId: otherPipelineId, revision: (await db.pipeline.findUniqueOrThrow({ where: { id: otherPipelineId } })).revision });
+  await mutatePipeline(db, owner, { ...await ctx(), operation: 'create-contact', name: 'Without email', email: '' });
+  assert.equal((await db.contact.findFirstOrThrow({ where: { subAccountId: siblingId, name: 'Without email' } })).email, null);
+  const count = await db.contact.count({ where: { subAccountId: siblingId } });
+  await db.contact.createMany({ data: Array.from({ length: 500 - count }, (_, index) => ({ subAccountId: siblingId, name: `Limit contact ${index}` })) });
+  const before = await ctx();
+  await assert.rejects(mutatePipeline(db, owner, { ...before, operation: 'create-contact', name: 'Over limit', email: '' }), PipelineConflict);
+  assert.equal((await ctx()).revision, before.revision);
+  assert.equal(await db.contact.count({ where: { subAccountId: siblingId } }), 500);
+});
+
 test('archived clients, revoked assignments, and deleted owners cannot mutate boards', async () => {
   await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: false } });
   assert.equal(await board(), null);

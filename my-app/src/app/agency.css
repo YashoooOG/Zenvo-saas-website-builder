@@ -99,6 +99,9 @@
 .agency-logo-preview img, .agency-initial img { object-fit: contain; max-height: 100%; border-radius: 4px; }
 .agency-logo label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
 .agency-logo input { width: 100%; min-width: 0; font-size: 13px; border: 1px solid var(--border); padding: 8px; border-radius: 6px; }
+.pipeline-contacts { display: grid; gap: 8px; margin-block: 16px 24px; max-height: 280px; overflow-y: auto; }
+.pipeline-contacts li { display: flex; flex-wrap: wrap; gap: 8px 20px; overflow-wrap: anywhere; }
+.pipeline-contacts span { color: var(--muted-foreground); }
 .pipeline-confirmation { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.5; }
 .pipeline-confirmation input { flex: 0 0 auto; margin-top: 3px; }
 .agency-logo input::file-selector-button { margin-right: 8px; padding: 4px 8px; background: var(--muted); border-radius: 4px; cursor: pointer; }
