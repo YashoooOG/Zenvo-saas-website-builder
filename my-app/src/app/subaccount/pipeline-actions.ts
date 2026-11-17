@@ -25,8 +25,8 @@ export async function mutatePipelineAction(_state: BoardState, form: FormData): 
   const user = await requireWorkspaceUser();
   const rawRevision = form.get('revision');
   const operation = form.get('operation');
-  const fields = operation === 'create-contact' ? ['name','email'] : operation === 'rename-board' || operation === 'add-lane' ? ['name'] : operation === 'move-lane' ? ['laneId','direction'] : operation === 'delete-lane' ? ['laneId'] : operation === 'rename-lane' ? ['laneId','name'] : operation === 'create-ticket' ? ['laneId','title','description'] : operation === 'edit-ticket' ? ['ticketId','title','description'] : operation === 'delete-ticket' ? ['ticketId'] : operation === 'place-ticket' ? ['ticketId','laneId'] : ['ticketId','laneId','direction'];
-  const removal = operation === 'delete-ticket' || operation === 'delete-lane';
+  const fields = operation === 'edit-contact' ? ['contactId','name','email'] : operation === 'delete-contact' ? ['contactId'] : operation === 'create-contact' ? ['name','email'] : operation === 'rename-board' || operation === 'add-lane' ? ['name'] : operation === 'move-lane' ? ['laneId','direction'] : operation === 'delete-lane' ? ['laneId'] : operation === 'rename-lane' ? ['laneId','name'] : operation === 'create-ticket' ? ['laneId','title','description'] : operation === 'edit-ticket' ? ['ticketId','title','description'] : operation === 'delete-ticket' ? ['ticketId'] : operation === 'place-ticket' ? ['ticketId','laneId'] : ['ticketId','laneId','direction'];
+  const removal = operation === 'delete-ticket' || operation === 'delete-lane' || operation === 'delete-contact';
   try {
     if (removal && form.get('confirmed') !== 'yes') throw new PipelineConflict('Confirm removal before continuing.');
     await mutatePipeline(getDb(), user.id, { subAccountId: form.get('subAccountId'), pipelineId: form.get('pipelineId'), revision: typeof rawRevision === 'string' && /^\d+$/.test(rawRevision) ? Number(rawRevision) : NaN,

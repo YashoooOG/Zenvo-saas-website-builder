@@ -5,12 +5,15 @@ import { AgencyAccessError } from './agency-access';
 export class PipelineConflict extends Error {}
 const id = z.string().min(1).max(191);
 const name = z.string().trim().min(2).max(191);
+const contactEmail = z.string().trim().pipe(z.union([z.literal(''), z.email().max(320)])).transform(email => email.toLowerCase());
 // Match Decimal(19,4) without converting through a floating-point number.
 const value = z.string().trim().regex(/^(0|[1-9]\d{0,14})(\.\d{1,4})?$/, 'Use a non-negative value with at most 15 whole digits and 4 decimal places.');
 const createSchema = z.object({ subAccountId: id, name, creationKey: z.uuid() }).strict();
 const scope = z.object({ subAccountId: id, pipelineId: id, revision: z.number().int().nonnegative() });
 const mutationSchema = z.discriminatedUnion('operation', [
-  scope.extend({ operation: z.literal('create-contact'), name, email: z.string().trim().pipe(z.union([z.literal(''), z.email().max(320)])).transform(email => email.toLowerCase()) }).strict(),
+  scope.extend({ operation: z.literal('create-contact'), name, email: contactEmail }).strict(),
+  scope.extend({ operation: z.literal('edit-contact'), contactId: id, name, email: contactEmail }).strict(),
+  scope.extend({ operation: z.literal('delete-contact'), contactId: id, confirmed: z.literal(true) }).strict(),
   scope.extend({ operation: z.literal('rename-board'), name }).strict(),
   scope.extend({ operation: z.literal('move-lane'), laneId: id, direction: z.enum(['UP', 'DOWN']) }).strict(),
   scope.extend({ operation: z.literal('delete-lane'), laneId: id, confirmed: z.literal(true) }).strict(),
@@ -58,7 +61,20 @@ export async function mutatePipeline(db: PrismaClient, actorId: string, input: u
     if (pipeline.revision !== data.revision) throw new PipelineConflict('This board changed in another tab. Reload before trying again.');
     const where = { subAccountId: data.subAccountId, pipelineId: data.pipelineId };
     const lanes = await tx.lane.findMany({ where, orderBy: [{ position: 'asc' }, { id: 'asc' }] });
-    if (data.operation === 'create-contact') {
+    if (data.operation === 'edit-contact' || data.operation === 'delete-contact') {
+      const contact = await tx.contact.findFirst({ where: { id: data.contactId, subAccountId: data.subAccountId } });
+      if (!contact) throw new AgencyAccessError('Contact unavailable.');
+      if (data.operation === 'edit-contact') {
+        if (data.email && await tx.contact.findFirst({ where: { subAccountId: data.subAccountId, email: data.email, id: { not: contact.id } } })) throw new PipelineConflict('A contact with this email already exists in this workspace.');
+        await tx.contact.update({ where: { id: contact.id }, data: { name: data.name, email: data.email || null } });
+      } else {
+        if (await tx.ticket.count({ where: { subAccountId: data.subAccountId, contactId: contact.id } })) throw new PipelineConflict('Unlink this contact from all tickets in this workspace before removing it.');
+        await tx.contact.delete({ where: { id: contact.id } });
+      }
+      // Contacts are shared: stale forms on any board must be rejected as well.
+      await tx.pipeline.updateMany({ where: { subAccountId: data.subAccountId }, data: { revision: { increment: 1 } } });
+      return pipeline.revision + 1;
+    } else if (data.operation === 'create-contact') {
       if (await tx.contact.count({ where: { subAccountId: data.subAccountId } }) >= 500) throw new PipelineConflict('This workspace has reached its 500-contact limit.');
       if (data.email && await tx.contact.findFirst({ where: { subAccountId: data.subAccountId, email: data.email } })) throw new PipelineConflict('A contact with this email already exists in this workspace.');
       await tx.contact.create({ data: { subAccountId: data.subAccountId, name: data.name, email: data.email || null } });

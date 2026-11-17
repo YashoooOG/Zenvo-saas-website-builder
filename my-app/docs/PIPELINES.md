@@ -1,4 +1,4 @@
-# Project boards — Stages 12a–12d
+# Project boards — Stages 12a–12e
 
 Open a client workspace → Project boards. Create a board to start with To do,
 In progress, and Done. Owners, agency admins, and assigned client ADMIN/MEMBER
@@ -37,7 +37,18 @@ Editors can add a name and optional email. Emails are trimmed and normalized to
 lowercase; duplicate non-empty emails within the workspace are rejected under
 the agency write lock, even when submitted from different boards. Empty emails
 are stored as null. Each workspace supports up to 500 contacts. Guests can read
-contacts but cannot create them. Contact editing/removal comes in a later checkpoint.
+contacts but cannot create, edit, or remove them.
+
+Edit and Remove controls appear beside each contact for workspace editors.
+Editing updates the shared record, including the name displayed on linked tickets.
+The email can be cleared; duplicate non-empty emails are rejected. The dialog
+captures the board revision when opened and preserves drafts if a save fails.
+Edits and removals increment every board revision in this client workspace under
+the agency lock, so stale forms on other boards cannot overwrite newer changes.
+Removal requires an explicit confirmation and is blocked while any ticket in any
+board in this workspace links to the contact. Unlink it from those tickets first.
+Deletion never removes tickets or changes their estimates. These operations reuse
+the existing schema and require no migration.
 
 After creating a ticket, open Edit to choose a contact and set its estimated
 value. Choose No contact to unlink it. The server verifies the contact belongs
@@ -128,3 +139,13 @@ contact creation, contact selection, exact value entry, scrolling the edit dialo
 saving, and persistence of both contact and value after reload. The isolated
 verification workspace was removed while retaining the owner's account and
 session. Mobile and guest UI checks were not repeated at this checkpoint.
+
+Stage 12e verification on November 17, 2026: production build including TypeScript,
+lint, 21 pipeline tests, eight client-access tests, and seven HTTP authentication
+checks passed (36 total). New tests cover shared contact edits, cross-board stale
+forms, duplicate and foreign contacts, guest denial, linked-contact protection,
+confirmation, unlink/removal, and removal racing with ticket linking. Desktop UI
+checks passed for edit propagation, blocked removal and cancellation, unlinking,
+confirmed removal, and reload persistence with ticket value preserved. The isolated
+verification workspace was removed; the user's account and session were retained.
+Mobile and guest UI checks were not repeated in this checkpoint.

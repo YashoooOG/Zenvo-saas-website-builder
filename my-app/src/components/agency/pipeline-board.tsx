@@ -5,6 +5,7 @@ import { DndContext, DragOverlay, PointerSensor, KeyboardSensor, useDraggable, u
 import { GripVertical } from 'lucide-react';
 import { PipelineForm } from './pipeline-forms';
 import { TicketDialog } from './ticket-dialog';
+import { ContactDialog } from './contact-dialog';
 import { mutatePipelineAction } from '@/app/subaccount/pipeline-actions';
 type Ticket = { id: string; title: string; description: string | null; contactId: string | null; value: string; contact: { name: string } | null };
 type Lane = { id: string; name: string; tickets: Ticket[] };
@@ -80,7 +81,7 @@ export function PipelineBoard({ board, subAccountId, editable }: { board: Board;
       </section>)}</div>
       <DragOverlay dropAnimation={null}>{active && <div className="pipeline-ticket ticket-drag-preview"><h3>{active.title}</h3></div>}</DragOverlay>
     </DndContext>
-    <section className="launchpad-section" aria-label="Workspace contacts"><h2>Workspace contacts</h2><p className="pipeline-hint">Contacts are shared across this client&apos;s boards. Add a contact here, then choose it when editing a ticket. Estimated values have no configured currency yet.</p>{board.contacts.length ? <ul className="pipeline-contacts">{board.contacts.map(contact => <li key={contact.id}><strong>{contact.name}</strong>{contact.email && <span>{contact.email}</span>}</li>)}</ul> : <p>No contacts yet.</p>}{editable && <PipelineForm hidden={{ ...hidden, operation: 'create-contact' }} fields={[{ name: 'name', label: 'Contact name' }, { name: 'email', label: 'Contact email (optional)', email: true }]} label="Add contact" reset disabled={pending || Boolean(active)} />}</section>
+    <section className="launchpad-section" aria-label="Workspace contacts"><h2>Workspace contacts</h2><p className="pipeline-hint">Contacts are shared across this client&apos;s boards. Add a contact here, then choose it when editing a ticket. Estimated values have no configured currency yet.</p>{board.contacts.length ? <ul className="pipeline-contacts">{board.contacts.map(contact => <li key={contact.id}><strong>{contact.name}</strong>{contact.email && <span>{contact.email}</span>}{editable && <ContactDialog contact={contact} scope={{ subAccountId, pipelineId: board.id, revision: board.revision }} disabled={pending || Boolean(active)} />}</li>)}</ul> : <p>No contacts yet.</p>}{editable && <PipelineForm hidden={{ ...hidden, operation: 'create-contact' }} fields={[{ name: 'name', label: 'Contact name' }, { name: 'email', label: 'Contact email (optional)', email: true }]} label="Add contact" reset disabled={pending || Boolean(active)} />}</section>
     {editable && <section className="launchpad-section"><h2>Add a lane</h2><PipelineForm hidden={{ ...hidden, operation: 'add-lane' }} fields={[{ name: 'name', label: 'New lane name' }]} label="Add lane" reset disabled={pending || Boolean(active)} /></section>}
   </>;
 }

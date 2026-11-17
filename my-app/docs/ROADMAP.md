@@ -205,8 +205,8 @@ removal, persistence after reload, 320px controls, and sign-out. No browser cons
 errors were recorded. Disposable local and Clerk fixtures were removed. No
 migration is required. Contacts and ticket values remain next within Stage 12.
 
-Stage 12d (contact creation, ticket linking, and estimated values) is implemented;
-awaiting the owner's commit. Production build including TypeScript and
+Stage 12d (contact creation, ticket linking, and estimated values) is committed
+as `435e085`. Production build including TypeScript and
 lint passed. Eighteen pipeline tests, eight client-access
 tests, and seven HTTP authentication checks passed (33 total) on November 17,
 2026. The local MySQL container was restarted before integration verification.
@@ -220,6 +220,18 @@ exact estimate entry, dialog scrolling, save, and persistence after reload. The
 isolated local verification workspace was removed; the owner's account and session
 were retained. Mobile and guest UI checks were not repeated in this checkpoint;
 server tests cover guest mutation denial and client isolation.
+
+Stage 12e (contact editing and removal) is implemented; awaiting the owner's
+commit. Production build including TypeScript, lint, 21 pipeline tests, eight
+client-access regressions, and seven authentication checks passed (36 total).
+Desktop UI verification on November 17, 2026 covered editing a contact, propagation
+to its linked ticket, blocking linked-contact removal, cancellation, unlinking,
+confirmed removal, and reload persistence with the ticket and value preserved.
+The isolated verification workspace was removed; the user's account/session remain.
+Contact edits/removals invalidate revisions on all client boards to prevent stale
+cross-board writes. No database migration is required. Board archival is next;
+currency-aware totals remain a later checkpoint. Mobile/guest UI checks were not
+repeated; integration tests enforce guest denial and cross-client isolation.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

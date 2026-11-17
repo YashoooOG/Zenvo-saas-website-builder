@@ -256,6 +256,65 @@ test('contact creation accepts an omitted email and enforces the workspace limit
   assert.equal(await db.contact.count({ where: { subAccountId: siblingId } }), 500);
 });
 
+test('contact edits update linked tickets across boards and invalidate stale forms everywhere', async () => {
+  const contact = await db.contact.findFirstOrThrow({ where: { subAccountId } });
+  const other = await createPipeline(db, owner, { subAccountId, name: 'Shared edit test', creationKey: randomUUID() });
+  const ticket = await db.ticket.findFirstOrThrow({ where: { pipelineId } });
+  await mutatePipeline(db, owner, { ...await context(), operation: 'edit-ticket', ticketId: ticket.id, title: ticket.title, description: '', contactId: contact.id, value: '45.6700' });
+  const before = await context();
+  await mutatePipeline(db, member, { ...before, operation: 'edit-contact', contactId: contact.id, name: '  Updated contact  ', email: ' UPDATED@example.com ' });
+  const updated = await db.contact.findUniqueOrThrow({ where: { id: contact.id } });
+  assert.equal(updated.name, 'Updated contact'); assert.equal(updated.email, 'updated@example.com');
+  const read = (await board())!.pipeline.lanes.flatMap(lane => lane.tickets).find(item => item.id === ticket.id)!;
+  assert.equal(read.contact?.name, updated.name); assert.equal(read.value, '45.6700');
+  assert.equal((await db.pipeline.findUniqueOrThrow({ where: { id: other.id } })).revision, other.revision + 1);
+  await assert.rejects(mutatePipeline(db, owner, { ...before, operation: 'edit-contact', contactId: contact.id, name: 'Stale edit', email: '' }), PipelineConflict);
+  await assert.rejects(mutatePipeline(db, owner, { subAccountId, pipelineId: other.id, revision: other.revision, operation: 'delete-contact', contactId: contact.id, confirmed: true }), PipelineConflict);
+});
+
+test('contact lifecycle rejects guest, foreign, duplicate, invalid, and linked removals atomically', async () => {
+  const contact = await db.contact.findFirstOrThrow({ where: { subAccountId, email: 'updated@example.com' } });
+  const foreign = await db.contact.findFirstOrThrow({ where: { subAccountId: siblingId } });
+  const input = { ...await context(), operation: 'edit-contact', contactId: contact.id, name: 'Blocked change', email: '' };
+  await assert.rejects(mutatePipeline(db, guest, input), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, contactId: foreign.id }), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, email: 'jamie@example.com' }), PipelineConflict);
+  await assert.rejects(mutatePipeline(db, owner, { ...input, email: 'invalid' }));
+  const removal = { ...await context(), operation: 'delete-contact', contactId: contact.id, confirmed: true };
+  await assert.rejects(mutatePipeline(db, guest, removal), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, { ...removal, confirmed: false }));
+  await assert.rejects(mutatePipeline(db, owner, { ...removal, contactId: foreign.id }), AgencyAccessError);
+  await assert.rejects(mutatePipeline(db, owner, removal), PipelineConflict);
+  assert.equal((await context()).revision, input.revision);
+  assert.equal((await db.contact.findUniqueOrThrow({ where: { id: contact.id } })).name, 'Updated contact');
+  const other = await db.pipeline.findFirstOrThrow({ where: { subAccountId, id: { not: pipelineId } } });
+  await assert.rejects(mutatePipeline(db, owner, { ...removal, pipelineId: other.id, revision: other.revision }), PipelineConflict);
+  await mutatePipeline(db, owner, { ...input, email: '' });
+  assert.equal((await db.contact.findUniqueOrThrow({ where: { id: contact.id } })).email, null);
+});
+
+test('confirmed unlinked contact removal preserves tickets and races safely with linking', async () => {
+  await mutatePipeline(db, owner, { ...await context(), operation: 'create-contact', name: 'Race contact', email: 'race@example.com' });
+  const contact = await db.contact.findFirstOrThrow({ where: { subAccountId, email: 'race@example.com' } });
+  const ticket = await db.ticket.findFirstOrThrow({ where: { pipelineId } });
+  const current = await context();
+  const results = await Promise.allSettled([
+    mutatePipeline(db, owner, { ...current, operation: 'delete-contact', contactId: contact.id, confirmed: true }),
+    mutatePipeline(db, admin, { ...current, operation: 'edit-ticket', ticketId: ticket.id, title: ticket.title, description: '', contactId: contact.id }),
+  ]);
+  assert.equal(results.filter(item => item.status === 'fulfilled').length, 1);
+  const stored = await db.ticket.findUniqueOrThrow({ where: { id: ticket.id } });
+  if (stored.contactId === contact.id) {
+    await assert.rejects(mutatePipeline(db, owner, { ...await context(), operation: 'delete-contact', contactId: contact.id, confirmed: true }), PipelineConflict);
+    await mutatePipeline(db, owner, { ...await context(), operation: 'edit-ticket', ticketId: ticket.id, title: ticket.title, description: '', contactId: null });
+    await mutatePipeline(db, owner, { ...await context(), operation: 'delete-contact', contactId: contact.id, confirmed: true });
+  }
+  assert.equal(await db.contact.findUnique({ where: { id: contact.id } }), null);
+  assert.ok(await db.ticket.findUnique({ where: { id: ticket.id } }));
+  // Clear the linked fixture before the suite's agency cascade cleanup.
+  await db.ticket.updateMany({ where: { subAccountId }, data: { contactId: null } });
+});
+
 test('archived clients, revoked assignments, and deleted owners cannot mutate boards', async () => {
   await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: false } });
   assert.equal(await board(), null);

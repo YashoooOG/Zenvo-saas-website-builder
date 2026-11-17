@@ -102,6 +102,7 @@
 .pipeline-contacts { display: grid; gap: 8px; margin-block: 16px 24px; max-height: 280px; overflow-y: auto; }
 .pipeline-contacts li { display: flex; flex-wrap: wrap; gap: 8px 20px; overflow-wrap: anywhere; }
 .pipeline-contacts span { color: var(--muted-foreground); }
+.contact-actions { display: flex; gap: 16px; margin-left: auto; font-size: 13px; }
 .pipeline-confirmation { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.5; }
 .pipeline-confirmation input { flex: 0 0 auto; margin-top: 3px; }
 .agency-logo input::file-selector-button { margin-right: 8px; padding: 4px 8px; background: var(--muted); border-radius: 4px; cursor: pointer; }
