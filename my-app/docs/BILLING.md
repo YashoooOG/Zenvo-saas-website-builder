@@ -1,14 +1,17 @@
 # Agency billing
 
 The owner-only billing page at `/agency/[agencyId]/billing` shows the configured
-plan and persisted subscription status. Stage 13b adds verified webhook ingestion
-and subscription tables. Zenvo does not yet create Stripe customers, subscriptions,
-checkout sessions, or payments. Checkout and portal access are subsequent checkpoints.
+plan and persisted subscription status. Stage 13b added verified webhook ingestion
+and subscription tables. Stage 13c adds owner-only hosted test Checkout: it creates
+a Stripe customer and checkout session; completing that session creates the
+subscription. Customer portal access is a subsequent checkpoint.
 Stripe settings may remain empty: the webhook returns 503 and the workspace works.
 
 Apply `bun run db:migrate` before running this version. The additive migration
 `20261117030000_agency_subscriptions` creates `AgencySubscription` and
 `StripeWebhookReceipt`, using the same case-sensitive collation as agency IDs.
+The additional `20261117040000_agency_checkout` migration creates `AgencyCheckout`
+to retain customer/session retry keys and checkout recovery state.
 
 ## Configure a test plan
 
@@ -71,8 +74,8 @@ timestamp tolerance, and a one-MiB body limit. Invalid signatures/payloads retur
 live-mode, connected-account, and unrelated event types are ignored with 200.
 
 An existing `Agency.stripeCustomerId` is the only way to resolve a tenant. The
-upcoming Checkout flow must persist that mapping **before** creating a subscription,
-and set subscription metadata `zenvoAgencyId` to the agency ID. Unknown customers
+Checkout flow persists that mapping **before** creating a session,
+and sets subscription metadata `zenvoAgencyId` to the agency ID. Unknown customers
 are ignored; metadata alone cannot claim an agency. No manual customer mapping is
 needed now, and generic `stripe trigger` fixtures won't create agency subscriptions.
 
@@ -98,6 +101,58 @@ signatures. Subscription retrieval is injected in these tests; no Stripe account
 is contacted. The owner page explicitly describes status as last confirmed, not
 instantaneous. It can show stored status even when plan configuration is unavailable.
 
+## Hosted test Checkout
+
+The owner sees **Continue to test checkout** only when the plan and all checkout
+configuration are available and no non-terminal local subscription is recorded.
+The server rechecks ownership and the configured price on every submission. Form
+inputs cannot select a customer, price, quantity, provider key, or return URL.
+All Stripe configuration may remain empty; no checkout is offered in that case.
+
+When ready, add `ZENVO_APP_URL` as the canonical origin (for example
+`http://localhost:3115` or `https://app.example.com`). Only HTTPS or HTTP loopback
+origins are accepted; paths, query strings, fragments, and credentials are rejected.
+Also configure the test key, recurring price, and webhook signing secret described
+above. Restricted keys additionally need customer and Checkout Session writes,
+Checkout Session reads, and subscription reads. A configured webhook secret does
+not prove the listener is running; verify real delivery before using Checkout.
+
+Customer and subscription metadata are set to the agency ID. Checkout uses one
+unit of the server price and filters payment methods to cards. No promotions,
+automatic tax, or custom amount fields are enabled in this checkpoint. Tax labels
+describe the price's configured behavior; this is not a production tax integration.
+Success and cancellation both return to billing without granting access or trusting
+query parameters. Refresh billing after Stripe sends its subscription event.
+Only HTTPS redirects to `checkout.stripe.com` are accepted; custom Stripe checkout
+domains are not supported in this checkpoint.
+
+The flow commits recovery keys before provider writes and the customer mapping
+before creating a checkout. Agency locks serialize competing submissions. Existing
+open sessions are reused; any non-terminal subscription at Stripe blocks another
+checkout, even if its webhook has not arrived. Subscription checks inspect up to
+100 records and fail closed when more exist. Expired sessions can be replaced on
+the next submission. Completed sessions wait for subscription synchronization;
+resubscription requires the previous subscription to be locally terminal and no
+non-terminal subscription at Stripe.
+
+Customer and checkout creation use persisted idempotency keys with stable request
+parameters. Uncertain requests are never retried after 23 hours, before Stripe's
+24-hour minimum key-retention boundary. Configuration changes during uncertain
+recovery also stop the flow. These cases require operator review: verify the Stripe
+customer/session and subscription state before repairing the local mapping or
+rotating any key. Do not clear recovery rows to work around an error. A dedicated
+recovery command is still needed before production. Sessions expire after an hour;
+if an uncertain request never reached Stripe and its expiry can no longer be used,
+provider validation may require this same operator review.
+
+Run `bun run test:checkout` for local MySQL tests with an injected provider. They
+cover owner denial, empty configuration, plan validation, concurrent requests, lost
+responses, active subscriptions, expired/completed sessions, safe redirects, and
+recovery cutoffs. These tests do not create real Stripe resources or establish that
+a real hosted payment and webhook round-trip succeeds. Verify that separately with
+test cards once Stripe is configured. Portal access and production billing remain
+future work.
+
 ## References
 
 - [Stripe API keys](https://docs.stripe.com/keys)
@@ -105,6 +160,8 @@ instantaneous. It can show stored status even when plan configuration is unavail
 - [Stripe currency minor units](https://docs.stripe.com/currencies)
 - [Stripe webhook signatures, retries, and event ordering](https://docs.stripe.com/webhooks)
 - [Retrieve current subscription state](https://docs.stripe.com/api/subscriptions/retrieve)
+- [Create a Checkout Session](https://docs.stripe.com/api/checkout/sessions/create)
+- [Stripe idempotency and retry retention](https://docs.stripe.com/api/idempotent_requests)
 
 Currency formatting deliberately supports a small explicit set. JPY has zero
 decimal places; the other supported currencies have two. Tax copy reflects the

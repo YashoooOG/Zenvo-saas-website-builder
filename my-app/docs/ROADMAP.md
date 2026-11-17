@@ -258,8 +258,7 @@ Checkout, subscription persistence, and webhook synchronization are next. See
 UI checks were not repeated; server permission tests cover owner-only access and
 tenant isolation.
 
-Stage 13b (subscription persistence and verified webhooks) is implemented; awaiting
-commit. The additive `20261117030000_agency_subscriptions` migration is applied
+Stage 13b (subscription persistence and verified webhooks) is committed as `c1f6420`. The additive `20261117030000_agency_subscriptions` migration is applied
 locally with zero schema drift. Production build including TypeScript, lint, nine
 subscription integration tests, seven plan tests, and eight HTTP authentication
 checks passed (24 total). The first migration attempt exposed a collation mismatch;
@@ -273,6 +272,20 @@ was removed afterward. Real Stripe delivery and mobile verification remain pendi
 Stripe variables remain empty at the user's request. Checkout and portal access
 are not implemented yet; checkout will build on this synchronization checkpoint.
 See [BILLING.md](BILLING.md) for event configuration and operational limitations.
+
+Stage 13c (owner-only hosted test Checkout) is implemented; awaiting commit.
+The additive `20261117040000_agency_checkout` migration is applied locally with
+zero schema drift. Production build including TypeScript, lint, eleven checkout
+tests, nine subscription regressions, seven plan tests, and eight HTTP auth checks
+passed (35 total). Checkout tests use real local MySQL and an injected provider;
+they cover owner denial, persisted retry keys, lost responses, concurrent requests,
+existing subscriptions, expiry/completion, canonical returns, and safe redirects.
+Test fixtures are cleaned up automatically. The local preview is running the new
+build on port 3115. Stripe settings remain empty at the user's request, so a real
+hosted checkout, configured-button browser flow, payment, and webhook round-trip
+remain unverified. No paid entitlement is inferred from a return URL. Uncertain
+operations older than 23 hours stop for operator review; recovery tooling and
+production hardening remain future work. Customer portal access is next.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

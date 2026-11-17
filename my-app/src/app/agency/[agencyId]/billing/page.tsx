@@ -5,6 +5,8 @@ import { getAgencyAccess } from '@/lib/agency-access';
 import { getDb } from '@/lib/db';
 import { getBillingPlan } from '@/lib/billing';
 import { getAgencySubscriptions, subscriptionStatusLabels } from '@/lib/subscriptions';
+import { checkoutConfiguration } from '@/lib/checkout';
+import { CheckoutForm } from '@/components/agency/checkout-form';
 
 export const metadata: Metadata = { title: 'Agency billing' };
 
@@ -15,11 +17,15 @@ export default async function AgencyBillingPage({ params }: PageProps<'/agency/[
   if (!access) notFound();
   const result = await getBillingPlan();
   const subscriptions = await getAgencySubscriptions(getDb(), user.id, agencyId);
+  const hasCurrentSubscription = subscriptions.some(subscription => !['canceled', 'incomplete_expired'].includes(subscription.status));
+  let checkoutReady = false;
+  try { checkoutConfiguration(process.env); checkoutReady = true; } catch { /* Optional provider setup. */ }
   return <>
     <div className="workspace-heading"><div><p className="workspace-eyebrow">Agency billing</p><h1>{access.agency.name}</h1><p>Review the plan available for your agency.</p></div><span className="agency-owner">Test mode</span></div>
-    <div className="agency-settings-grid"><aside><h2>Your agency plan</h2><p>Only the agency owner can access billing.</p><p>Subscription checkout is not available yet. Viewing this page does not start a subscription or charge you.</p></aside>
+    <div className="agency-settings-grid"><aside><h2>Your agency plan</h2><p>Only the agency owner can access billing.</p><p>Viewing this page does not start a subscription. Test checkout opens on Stripe; subscription status is confirmed separately.</p></aside>
       <section aria-labelledby="billing-plan-title" className="agency-empty">
         {result.status === 'ready' ? <><h2 id="billing-plan-title">{result.plan.name}</h2><p><strong>{result.plan.amount}</strong> {result.plan.cadence}</p><p>{result.plan.tax}</p><p>This is the configured test plan, not an active subscription.</p></> : <><h2 id="billing-plan-title">Plan unavailable</h2><p>{result.message}</p><p>Your agency workspace remains available.</p></>}
+        {result.status === 'ready' && (hasCurrentSubscription ? <p>Your agency already has a subscription. Review its status below.</p> : checkoutReady ? <CheckoutForm agencyId={agencyId} /> : <p>Checkout setup is incomplete.</p>)}
       </section>
     </div>
     <section aria-labelledby="subscription-status-title" className="agency-empty mt-8">
