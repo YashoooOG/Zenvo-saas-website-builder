@@ -233,7 +233,7 @@ cross-board writes. No database migration is required. Board archival is next;
 currency-aware totals remain a later checkpoint. Mobile/guest UI checks were not
 repeated; integration tests enforce guest denial and cross-client isolation.
 
-Stage 12f (board archival/restoration) is implemented; awaiting the owner's commit.
+Stage 12f (board archival/restoration) is committed as `96c89bf`.
 The additive `20261117020000_pipeline_archive` migration was applied locally with
 zero schema drift. Production build including TypeScript, lint, 23 pipeline tests,
 eight client-access tests, and seven HTTP authentication checks passed (38 total).
@@ -244,6 +244,20 @@ was removed; the owner's account/session were retained. Mobile/guest UI checks
 were not repeated; server tests enforce guest denial and mutation blocking.
 This completes the current project-board checkpoints. Stage 13 begins agency
 subscription billing in Stripe test mode; currency-aware totals remain future work.
+
+Stage 13a (owner-only billing plan preview) is implemented; awaiting the owner's
+commit. Production build including TypeScript, lint, seven billing validation tests,
+eight database permission tests, and seven HTTP authentication checks passed (22
+checks total). Signed-in desktop verification on November 17, 2026 confirmed the
+Billing navigation, breadcrumb, and unconfigured-plan fallback. The disposable
+verification agency was removed. Stripe configuration remains empty at the user's
+request: a real provider price read and the configured-plan UI are not verified.
+Unit fixtures cover valid pricing and invalid/live/inactive/unsupported plans.
+No customer, subscription, payment, or migration is created by this checkpoint.
+Checkout, subscription persistence, and webhook synchronization are next. See
+[BILLING.md](BILLING.md) for setup and supported price types. Mobile and non-owner
+UI checks were not repeated; server permission tests cover owner-only access and
+tenant isolation.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

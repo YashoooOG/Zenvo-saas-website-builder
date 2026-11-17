@@ -35,14 +35,17 @@ test('owner/admin/member/client/outsider reads follow the permission matrix and 
     assert.equal(access?.role, role);
     assert.equal(Boolean(await getAgencyAccess(db, id, agencyId, 'settings')), role !== 'MEMBER');
     assert.equal(Boolean(await getAgencyAccess(db, id, agencyId, 'team')), role === 'OWNER');
+    assert.equal(Boolean(await getAgencyAccess(db, id, agencyId, 'billing')), role === 'OWNER');
     const agencies = await listAccessibleAgencies(db, id);
     assert.equal(agencies.length, 1);
     const links = workspaceLinks(agencies[0]);
     assert.equal(links.some(link => link.label === 'Team'), role === 'OWNER');
+    assert.equal(links.some(link => link.label === 'Billing'), role === 'OWNER');
     assert.equal(links.some(link => link.label === 'Agency settings'), role !== 'MEMBER');
   }
   for (const id of [client, outsider, `${prefix}_missing`]) {
     assert.equal(await getAgencyAccess(db, id, agencyId), null);
+    assert.equal(await getAgencyAccess(db, id, agencyId, 'billing'), null);
     assert.deepEqual(await listAccessibleAgencies(db, id), []);
     await assert.rejects(getAgencyTeam(db, id, agencyId), AgencyAccessError);
   }
@@ -62,6 +65,7 @@ test('owners cannot be demoted or removed and arbitrary roles and tenant targets
   const foreign = await createAgency(db, outsider, { ...fields, creationKey: randomUUID() });
   await assert.rejects(changeAgencyMember(db, owner, { agencyId: foreign.id, userId: outsider, version: randomUUID(), role: 'REMOVE' }), AgencyAccessError);
   assert.equal(await getAgencyAccess(db, admin, foreign.id), null);
+  assert.equal(await getAgencyAccess(db, owner, foreign.id, 'billing'), null);
 });
 
 test('role changes take effect on the next server call and stale versions cannot overwrite them', async () => {
