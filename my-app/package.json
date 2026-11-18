@@ -46,7 +46,8 @@
     "test:connect": "bun --env-file=.env.local test scripts/connect.test.ts",
     "test:connect-oauth": "bun --env-file=.env.local test scripts/connect-oauth.test.ts",
     "test:connect-webhook": "bun --env-file=.env.local test scripts/connect-webhook.test.ts",
-    "test:catalog": "bun --env-file=.env.local test scripts/connected-catalog.test.ts"
+    "test:catalog": "bun --env-file=.env.local test scripts/connected-catalog.test.ts",
+    "test:fees": "bun test scripts/application-fees.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

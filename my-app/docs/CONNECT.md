@@ -151,8 +151,35 @@ or reauthorizing the account clears the old catalog, and revoked/unmapped catalo
 are not exposed. The last successful snapshot and timestamp otherwise remain
 available after import failure. There is no automatic product webhook sync yet.
 
+## Platform application fee policy
+
+Stage 14e adds `ZENVO_APPLICATION_FEE_BPS`, a server-only deployment setting shared
+by agencies. It accepts integers from 0 through 10000: 100 means 1%, 250 means
+2.5%, and explicit 0 means no application fee. Blank or malformed values are
+unconfigured; no commercial rate is assumed. This policy is displayed read-only
+on the owner-only Payments page, separately from agency subscription billing.
+There is no browser or agency action that can change the platform's rate.
+
+`calculateApplicationFee` takes a verified charge total in currency minor units
+and an integer rate. It uses BigInt multiplication, then rounds down once on the
+whole charge total. Zero charges and zero fees produce zero; the fee can never
+exceed the charge. The returned remainder is before Stripe processing fees and
+is not a promised payout. No currency conversion or universal cents assumption
+is used. Taxes, discounts and shipping are not calculated by this helper.
+
+No payment endpoint consumes this policy yet. Stage 17 must require valid policy,
+revalidate account authorization and Stripe price on the server, derive the total
+without accepting browser-supplied amounts/rates, snapshot the chosen policy with
+the durable payment attempt, and send the resulting application_fee_amount only
+when appropriate for the selected direct-charge flow. Changes must not alter an
+already-created payment attempt. Refunds and fee refunds need explicit handling
+and end-to-end Stripe testing before production. The present checkpoint neither
+creates charges nor takes application fees.
+
 ## Verification
 
+Run `bun run test:fees` for configuration, zero/full-rate boundaries, floor rounding,
+invalid amounts and exact large-integer calculations.
 Run `bun run test:connect` for local MySQL tests with injected account responses.
 They cover configuration, missing mappings, active ownership, sanitization, wrong
 accounts/types, provider failure, and mapping changes during retrieval.
@@ -176,3 +203,5 @@ References: [OAuth for Standard accounts](https://docs.stripe.com/connect/oauth-
 [Connect webhooks](https://docs.stripe.com/connect/webhooks).
 
 Catalog references: [products](https://docs.stripe.com/api/products/list), [prices](https://docs.stripe.com/api/prices/list).
+
+Fee reference: [Stripe direct charges](https://docs.stripe.com/connect/direct-charges).

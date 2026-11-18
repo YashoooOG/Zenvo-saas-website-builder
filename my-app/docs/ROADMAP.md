@@ -375,7 +375,17 @@ preview runs this build on port 3115. Real Stripe imports and signed-in visual
 verification remain pending while
 Stripe is unconfigured and the prior browser session is unavailable. Checkout,
 automatic product events and application fees are not activated. Next is fee
-configuration before the funnel builder. Awaiting commit.
+configuration before the funnel builder. Committed as `f111919`.
+
+Stage 14e adds a server-controlled application fee policy and a read-only summary
+on the owner Payments page. Blank configuration does not assume a fee; explicit
+zero is supported. Integer arithmetic avoids monetary precision loss and floors
+fees once per charge total. Production build including TypeScript, lint, seven fee
+tests and nine HTTP authentication checks pass (16 total). The preview runs the
+new build on port 3115. No migration or Stripe write is needed. Payment
+creation and fee/refund integration remain for stage 17; provider integration and
+signed-in visual verification are still pending. Stage 15 next adds tenant-scoped
+funnels and pages with validated editor content. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

@@ -8,6 +8,7 @@ import { retrieveConnectedAccount } from '@/lib/stripe-connect';
 import { ConnectForm } from '@/components/agency/connect-form';
 import { CatalogForm } from '@/components/agency/catalog-form';
 import { getConnectedCatalog } from '@/lib/connected-catalog';
+import { applicationFeeSummary } from '@/lib/application-fees';
 
 export const metadata: Metadata = { title: 'Agency payments' };
 export default async function AgencyPaymentsPage({ params, searchParams }: PageProps<'/agency/[agencyId]/payments'>) {
@@ -15,6 +16,7 @@ export default async function AgencyPaymentsPage({ params, searchParams }: PageP
   const { agencyId } = await params;
   const query = await searchParams;
   const outcome = typeof query.connect === 'string' ? query.connect : null;
+  const fee = applicationFeeSummary(process.env);
   let payments;
   let catalog;
   try { payments = await getAgencyPayments(getDb(), user.id, agencyId, process.env, retrieveConnectedAccount); catalog = payments.status === 'connected' ? await getConnectedCatalog(getDb(), user.id, agencyId) : null; }
@@ -27,6 +29,11 @@ export default async function AgencyPaymentsPage({ params, searchParams }: PageP
         {payments.status === 'connected' ? <><h2 id="connect-status-title">Stripe account linked</h2><p>Details {payments.account.detailsSubmitted ? 'submitted' : 'not yet submitted'}. Charges {payments.account.chargesEnabled ? 'enabled' : 'not enabled'}. Payouts {payments.account.payoutsEnabled ? 'enabled' : 'not enabled'}.</p><p>{payments.account.outstanding} outstanding requirements · {payments.account.pendingVerification} pending verification</p>{payments.account.restricted && <p>Stripe reports an account restriction. Review your Stripe account for details.</p>}<p>Status was fetched from Stripe for this page. This does not enable sales in Zenvo.</p></> : payments.status === 'not-connected' ? <><h2 id="connect-status-title">No Stripe account connected</h2><p>Stripe will ask you to authorize test-mode access to your account.</p><ConnectForm agencyId={agencyId} /></> : <><h2 id="connect-status-title">{payments.status === 'unconfigured' ? 'Payments setup incomplete' : 'Account status unavailable'}</h2><p>{payments.message}</p><p>Your agency workspace remains available.</p></>}
       </section>
     </div>
+    <section className="agency-empty" aria-labelledby="application-fee-title">
+      <h2 id="application-fee-title">Platform application fee</h2>
+      {fee.status === 'configured' ? <><p>{fee.percentage} of each future payment total.</p><p>The fee is rounded down to the currency’s smallest payment unit. Stripe processing fees are separate; this rate is not a payout estimate.</p></> : <p>The platform has not configured an application fee yet.</p>}
+      <p>This policy is managed by the platform and is separate from your agency subscription. Payments are not enabled yet.</p>
+    </section>
     {payments.status === 'connected' && <section className="agency-empty" aria-labelledby="catalog-title">
       <h2 id="catalog-title">Product catalog</h2>
       <p>Import your connected account’s test products and prices. Manage them in Stripe, then synchronize again. Sales are not enabled yet.</p>
