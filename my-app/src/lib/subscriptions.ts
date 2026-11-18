@@ -1,6 +1,6 @@
 import type Stripe from 'stripe';
 import { z } from 'zod';
-import type { PrismaClient } from '../generated/prisma/client';
+import type { Prisma, PrismaClient } from '../generated/prisma/client';
 import { AgencyAccessError, getAgencyAccess, lockAgencyActors } from './agency-access';
 
 const stripeId = (prefix: string) => z.string().max(191).regex(new RegExp(`^${prefix}_[A-Za-z0-9]+$`));
@@ -28,6 +28,16 @@ const snapshotSchema = z.object({
   })).length(1) }),
 });
 
+export async function persistSubscription(tx: Prisma.TransactionClient, raw: Stripe.Subscription, agencyId: string, customerId: string, priceId: string) {
+  const subscription = snapshotSchema.parse(raw);
+  const item = subscription.items.data[0];
+  if (subscription.customer !== customerId || subscription.metadata.zenvoAgencyId !== agencyId || item.price.id !== priceId) throw new Error('Subscription mapping mismatch');
+  const existing = await tx.agencySubscription.findUnique({ where: { id: subscription.id }, select: { agencyId: true } });
+  if (existing && existing.agencyId !== agencyId) throw new Error('Subscription belongs to another agency');
+  const data = { priceId: item.price.id, status: subscription.status, currentPeriodEnd: new Date(item.current_period_end * 1000), cancelAtPeriodEnd: subscription.cancel_at_period_end, collectionPaused: subscription.pause_collection !== null, syncedAt: new Date() };
+  await tx.agencySubscription.upsert({ where: { id: subscription.id }, create: { id: subscription.id, agencyId, ...data }, update: data });
+}
+
 // Fetch inside the agency lock: delayed and concurrent deliveries always refresh
 // current Stripe state, rather than overwriting it with an older event snapshot.
 export async function syncSubscription(db: PrismaClient, event: SubscriptionEvent, priceId: string, retrieve: (id: string) => Promise<Stripe.Subscription>) {
@@ -39,16 +49,9 @@ export async function syncSubscription(db: PrismaClient, event: SubscriptionEven
     const current = await tx.agency.findUnique({ where: { id: agency.id }, select: { stripeCustomerId: true } });
     if (current?.stripeCustomerId !== customerId) throw new Error('Customer mapping changed');
     if (await tx.stripeWebhookReceipt.findUnique({ where: { id: event.id } })) return 'duplicate' as const;
-    const subscription = snapshotSchema.parse(await retrieve(event.data.object.id));
-    const item = subscription.items.data[0];
-    if (subscription.id !== event.data.object.id || subscription.customer !== customerId || subscription.metadata.zenvoAgencyId !== agency.id || item.price.id !== priceId) throw new Error('Subscription mapping mismatch');
-    const existing = await tx.agencySubscription.findUnique({ where: { id: subscription.id }, select: { agencyId: true } });
-    if (existing && existing.agencyId !== agency.id) throw new Error('Subscription belongs to another agency');
-    const data = {
-      priceId: item.price.id, status: subscription.status, currentPeriodEnd: new Date(item.current_period_end * 1000),
-      cancelAtPeriodEnd: subscription.cancel_at_period_end, collectionPaused: subscription.pause_collection !== null, syncedAt: new Date(),
-    };
-    await tx.agencySubscription.upsert({ where: { id: subscription.id }, create: { id: subscription.id, agencyId: agency.id, ...data }, update: data });
+    const subscription = await retrieve(event.data.object.id);
+    if (subscription.id !== event.data.object.id) throw new Error('Subscription mapping mismatch');
+    await persistSubscription(tx, subscription, agency.id, customerId, priceId);
     await tx.stripeWebhookReceipt.create({ data: { id: event.id, type: event.type } });
     return 'updated' as const;
   }, { maxWait: 5000, timeout: 20000, isolationLevel: 'ReadCommitted' });

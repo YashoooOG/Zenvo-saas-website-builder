@@ -287,7 +287,7 @@ remain unverified. No paid entitlement is inferred from a return URL. Uncertain
 operations older than 23 hours stop for operator review; recovery tooling and
 production hardening remain future work. Customer portal access is next.
 
-Stage 13d (owner-only customer portal access) is implemented; awaiting commit.
+Stage 13d (owner-only customer portal access) is committed as `12277c4`.
 Production build including TypeScript, lint, eight portal tests, eleven checkout
 tests, nine subscription tests, seven plan tests, and eight HTTP auth checks passed
 (43 total). No migration is needed. Portal tests use real local MySQL with an
@@ -299,6 +299,20 @@ configured browser flow, actual hosted portal operations, and resulting webhook
 delivery are unverified. Preview is running the new build on port 3115. Billing
 reconciliation and recovery tooling are next; production billing remains gated on
 real provider verification and operational hardening.
+
+Stage 13e (owner-triggered subscription reconciliation) is implemented; awaiting
+commit. Production build including TypeScript, lint, 43 billing tests across five
+suites, and eight HTTP authentication checks passed (51 total). The final HTTP
+checks completed on November 18, 2026 after restarting the stopped preview.
+No migration is needed. Reconciliation uses the webhook's subscription validation,
+serializes with its agency lock, and atomically refreshes the complete bounded
+history. Tests cover missed creation/cancellation events, incomplete histories,
+invalid customer/tenant/price data, rollback, and concurrent refreshes using local
+MySQL and an injected provider. Test fixtures were removed automatically. Stripe
+settings remain empty at the user's request; real provider reads and the configured
+browser refresh flow remain unverified. The preview runs on port 3115. Uncertain
+checkout/customer creation-key recovery remains a separate upcoming checkpoint;
+refresh does not clear recovery keys or alter customer mappings.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

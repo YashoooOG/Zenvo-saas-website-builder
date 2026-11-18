@@ -195,6 +195,40 @@ viewing, payment-method changes, cancellation, and subsequent webhook delivery
 remain unverified while Stripe configuration is empty. No migration is needed for
 this checkpoint.
 
+## Refreshing subscription status
+
+Stage 13e adds **Refresh status from Stripe** to the subscription-status section
+for an owner whose agency has a mapped customer and a configured test key/price.
+It can recover missed creation, cancellation, and status-change events. It needs
+only customer/subscription read access at Stripe and does not create payments,
+subscriptions, customers, or webhook receipts. It does not require a portal
+configuration or a running webhook listener, although normal delivery should still
+be configured. Leave the test credentials empty to keep this action unavailable.
+
+The server locks the agency and rechecks active ownership before contacting Stripe.
+It verifies the mapped customer's test mode and agency metadata, then requests
+all subscription statuses (including canceled subscriptions), up to 100 records.
+A response with more pages, duplicate IDs, or any missing locally known subscription
+is rejected. Missing records are never treated as cancellations or deleted locally.
+Every returned subscription passes the same customer, agency, price, item count,
+quantity, and test-mode validation used by the webhook handler. A single invalid
+record rolls back the entire refresh. Unexpected historical prices therefore need
+operator review instead of being silently skipped.
+
+Refresh and webhook writes use the same agency lock, keeping a delayed refresh from
+overwriting a later webhook fetch. Provider reads have ten-second timeouts without
+retries inside a thirty-second transaction. Successful refreshes revalidate the
+billing page; failures preserve its recorded status and display a safe message.
+The returned status is a snapshot, not a substitute for ongoing webhook delivery.
+
+`bun run test:reconciliation` covers missed-event recovery, active ownership,
+customer matching, incomplete histories, all-or-nothing updates, provider failures,
+and concurrent refreshes using local MySQL and an injected provider. No migration
+is needed. Real Stripe reads and the configured browser refresh flow remain
+unverified while credentials are empty. Recovery of uncertain customer/checkout
+creation keys is separate and still requires operator tooling; this refresh does
+not clear those keys or change the stored customer mapping.
+
 ## References
 
 - [Stripe API keys](https://docs.stripe.com/keys)
@@ -206,6 +240,7 @@ this checkpoint.
 - [Stripe idempotency and retry retention](https://docs.stripe.com/api/idempotent_requests)
 - [Create a customer portal session](https://docs.stripe.com/api/customer_portal/sessions/create)
 - [Configure and integrate the customer portal](https://docs.stripe.com/customer-management/integrate-customer-portal)
+- [List all subscription statuses](https://docs.stripe.com/api/subscriptions/list)
 
 Currency formatting deliberately supports a small explicit set. JPY has zero
 decimal places; the other supported currencies have two. Tax copy reflects the

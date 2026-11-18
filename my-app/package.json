@@ -39,7 +39,8 @@
     "billing:check": "bun --env-file=.env.local scripts/check-billing.ts",
     "test:subscriptions": "bun --env-file=.env.local test scripts/subscriptions.test.ts",
     "test:checkout": "bun --env-file=.env.local test scripts/checkout.test.ts",
-    "test:portal": "bun --env-file=.env.local test scripts/portal.test.ts"
+    "test:portal": "bun --env-file=.env.local test scripts/portal.test.ts",
+    "test:reconciliation": "bun --env-file=.env.local test scripts/reconciliation.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
