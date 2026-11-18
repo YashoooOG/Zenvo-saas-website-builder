@@ -508,7 +508,17 @@ not prevent recovery of historical sessions. Production build (including TypeScr
 lint, 20 session/recovery integration tests and nine HTTP authentication checks
 pass (29 total). The preview on port 3115 runs this build. No migration is needed.
 Live Stripe verification remains pending; verified payment events are next before
-public checkout. Awaiting commit.
+public checkout. Committed as `437e05d`.
+
+Stage 17g extends the signed Connect webhook with Checkout payment events. It
+retrieves current connected-account session/PaymentIntent state, validates frozen
+amounts/fees and identities, atomically deduplicates receipts and persists confirmed
+payment state without regressing on stale failure events. The additive
+`20261119040000_funnel_payment_state` migration is applied locally with no schema
+drift. Production build (including TypeScript), lint, 17 payment/Connect webhook
+tests, 20 session/recovery tests and nine HTTP authentication checks pass (46 total).
+The preview on port 3115 runs this build. Live Stripe verification remains pending.
+Refund/dispute reconciliation and public checkout remain outstanding. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

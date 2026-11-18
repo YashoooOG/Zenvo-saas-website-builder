@@ -377,6 +377,9 @@ model FunnelCheckoutAttempt {
   sessionRequest Json?
   sessionId String? @unique @db.VarChar(191)
   sessionStatus String? @db.VarChar(16)
+  paymentIntentId String? @unique @db.VarChar(191)
+  paymentStatus String @default("pending") @db.VarChar(16)
+  paymentConfirmedAt DateTime? @db.DateTime(3)
   createdAt DateTime @default(now()) @db.DateTime(3)
   expiresAt DateTime @db.DateTime(3)
   @@unique([actorId, requestId])

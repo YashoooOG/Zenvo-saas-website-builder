@@ -414,3 +414,47 @@ Connect payment-event reconciliation remain pending before public checkout.
 
 References: [list Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/list)
 and [expire a Checkout Session](https://docs.stripe.com/api/checkout/sessions/expire).
+
+## Verified payment-event state (17g)
+
+The existing signed `/api/stripe-connect/webhook` endpoint now accepts test-mode
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`checkout.session.async_payment_failed` and `checkout.session.expired` events.
+Add those four event types to the connected-account webhook destination when
+configuring Stripe. They use `STRIPE_CONNECT_WEBHOOK_SECRET`, not the platform
+subscription webhook secret. Existing account-update and revocation handling
+remain on the same endpoint.
+
+After signature, body-size, test-mode and connected-account checks, the handler
+uses a bound session ID or event metadata only to locate an attempt on that same
+historical account. It retrieves the current session with expanded line items and
+PaymentIntent using `stripeAccount`. Receipt insertion and attempt updates commit
+together under the existing account lock. Duplicate/concurrent deliveries do not
+repeat provider reads; provider errors or invalid bindings roll back the receipt
+and return a generic 503 for retry. Unrelated sessions/accounts are acknowledged
+without changing an attempt.
+
+Payment confirmation requires the complete session to report paid, an expanded
+test-mode PaymentIntent to report succeeded, and received amount, intended amount,
+currency, application fee and both attempt/agency metadata fields to match the
+frozen snapshot. The existing session validation also checks line item, quantity,
+subtotal/total and expiry. An unpaid completion remains pending; verified delayed
+failure or expiration records failed/expired. Event types never override a freshly
+retrieved paid result. A confirmed payment cannot regress through late failure or
+expiry events. Refunds/disputes need separate state handling in a later checkpoint.
+
+The additive migration `20261119040000_funnel_payment_state` adds a unique nullable
+PaymentIntent binding, payment status (default pending) and confirmation timestamp.
+The timestamp records when Zenvo first verified payment, not Stripe's charge time.
+Historical payment updates remain valid after unpublishing, local attempt expiry,
+owner changes or connection removal; they do not authorize new checkout access.
+Existing recovery review markers remain in place. No card data or customer details
+are stored in these fields. This checkpoint records payment truth only: it does
+not fulfill an order, send messages, move tickets or expose public checkout.
+
+Apply `bun run db:migrate` and run `bun run test:funnel-payments`. Tests use signed
+fixture webhook requests, injected provider responses and real local MySQL. Live
+Stripe end-to-end testing remains pending while credentials are intentionally
+empty. Refund/dispute reconciliation and public checkout remain outstanding.
+
+Reference: [Stripe fulfillment and payment-event guidance](https://docs.stripe.com/checkout/fulfillment).

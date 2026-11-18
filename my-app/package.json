@@ -54,7 +54,8 @@
     "test:page-offers": "bun --env-file=.env.local test scripts/page-offers.test.ts",
     "test:funnel-attempts": "bun --env-file=.env.local test scripts/funnel-checkout-attempts.test.ts",
     "test:funnel-sessions": "bun --env-file=.env.local test scripts/funnel-checkout-sessions.test.ts",
-    "test:funnel-recovery": "bun --env-file=.env.local test scripts/funnel-session-recovery.test.ts"
+    "test:funnel-recovery": "bun --env-file=.env.local test scripts/funnel-session-recovery.test.ts",
+    "test:funnel-payments": "bun --env-file=.env.local test scripts/funnel-payment-events.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
