@@ -396,7 +396,17 @@ drift. Production build including TypeScript, lint, seven local MySQL/content te
 and nine HTTP authentication checks pass (16 total). The preview on port 3115
 runs this build. Signed-in visual checks remain pending.
 The next checkpoint adds draft editing/preview; drag-and-drop and publishing are
-not implemented yet. See [FUNNELS.md](FUNNELS.md). Awaiting commit.
+not implemented yet. See [FUNNELS.md](FUNNELS.md). Committed as `4b64126`.
+
+Stage 15b adds an authenticated draft editor and live text/section preview, with
+nested blocks, sibling reordering, explicit save and confirmed reload/removal.
+Guests can preview only. Draft writes recheck access and revisions, preserve
+published snapshots, and reject malformed content. Failed saves retain local edits.
+Production build including TypeScript, lint, ten funnel/editor tests and nine HTTP
+authentication checks pass (19 total). The preview on port 3115 runs this build.
+No migration is needed. Signed-in visual/interactive
+verification remains pending. Next is richer editor elements and style controls,
+followed by drag-and-drop and history. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

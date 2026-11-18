@@ -22,9 +22,8 @@ New pages receive a validated version-1 empty document. The initial document typ
 supports containers and plain text only. Validation rejects unknown executable
 fields/node types, duplicate IDs, cycles, more than 500 nodes, excessive nesting
 and more than 100,000 JSON characters. Pre-validation also limits traversal to
-4,000 values and depth 20 before recursive schema parsing. There is no HTML/script
-execution, visual editor, draft save endpoint, public route or publish action in
-this checkpoint. The next checkpoint adds draft editing and preview.
+4,000 values and depth 20 before recursive schema parsing. There is no HTML/script execution, public route or publish action. Stage 15b adds
+the authenticated draft editor described below.
 
 Deletion requires explicit confirmation. A funnel must be empty before deletion.
 Pages with a publication timestamp or published content cannot be edited or
@@ -37,3 +36,30 @@ page persistence, path conflicts, stale revisions, deletion guards, deleted user
 and content validation. The HTTP auth suite includes both new funnel routes.
 Signed-in visual verification remains pending; automated checks do not establish
 that the complete builder or publishing flow is ready.
+
+## Draft editor and preview (15b)
+
+Each page now links to `/subaccount/[subaccountId]/funnels/[funnelId]/pages/[pageId]`.
+Editors can add nested sections/text blocks, edit plain text, move siblings up/down,
+and remove blocks with confirmation. Guests receive a read-only draft preview.
+Preview uses React text rendering, never raw HTML or script execution.
+
+The explicit Save draft action validates content on the server, checks the page
+against workspace/funnel scope, rechecks write permissions under locks, and uses
+the funnel revision to reject stale saves. Saving changes draftContent only;
+publishedContent and publishedAt remain untouched, including for published pages.
+Metadata or sibling-page changes also invalidate older editor revisions.
+
+The editor retains local changes when a save fails or conflicts. Inputs are
+disabled during save, and success advances the local revision. Reload saved draft
+requires confirmation when dirty. A beforeunload handler warns on full-page exit
+where supported by the browser; it is not a guarantee against every in-app route
+change, tab crash or browser shutdown. There is no local/offline recovery storage.
+Copy important text before reloading after a conflict. The back-to-funnel link uses
+full-page navigation so the browser can issue its unsaved-change warning.
+
+Ten tests now cover management plus save/reload, read-only guest access, foreign
+page scopes, unchanged published snapshots, invalid documents, overlapping saves,
+immutable editor operations and nested block ordering/removal. No schema migration
+is needed. Styling controls, responsive canvas, drag-and-drop, undo/redo and
+publishing remain future checkpoints. Signed-in interactive verification is pending.

@@ -49,7 +49,7 @@ test('public home and authentication pages remain accessible', async () => {
 });
 
 test('signed-out document requests redirect to sign-in with a return URL', async () => {
-  for (const path of ['/agency', '/agency/nonexistent/billing', '/agency/nonexistent/payments', '/agency/nonexistent/clients', '/agency/nonexistent/clients/nonexistent/access', '/subaccount', '/subaccount/nonexistent', '/subaccount/nonexistent/media', '/subaccount/nonexistent/funnels', '/subaccount/nonexistent/funnels/nonexistent', '/subaccount/nonexistent/pipelines', '/subaccount/nonexistent/pipelines/nonexistent', '/subaccount/invitations/invalid']) {
+  for (const path of ['/agency', '/agency/nonexistent/billing', '/agency/nonexistent/payments', '/agency/nonexistent/clients', '/agency/nonexistent/clients/nonexistent/access', '/subaccount', '/subaccount/nonexistent', '/subaccount/nonexistent/media', '/subaccount/nonexistent/funnels', '/subaccount/nonexistent/funnels/nonexistent', '/subaccount/nonexistent/funnels/nonexistent/pages/nonexistent', '/subaccount/nonexistent/pipelines', '/subaccount/nonexistent/pipelines/nonexistent', '/subaccount/invitations/invalid']) {
   const response = await request(path, { Accept: 'text/html' });
   assert.ok([302, 303, 307].includes(response.status));
   const location = new URL(response.headers.get('location'), base);
