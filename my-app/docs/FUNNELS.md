@@ -171,3 +171,49 @@ Tests cover owned-image save/reload, foreign-reference rejection, missing-image
 rendering and save rejection, removal recovery, discarded raw URL fields and alt
 limits. Existing media upload/retirement and history regressions also pass.
 No migration is required. Signed-in file selection and visual checks remain pending.
+
+## Public publishing (17a)
+
+Publishing controls live on the funnel's page list. They require explicit
+confirmation and publish the **saved** draft; unsaved edits in an editor tab are
+not included. Editors with workspace write access can publish or unpublish;
+guests and unrelated users cannot. The current funnel revision is required.
+Publishing replaces publishedContent atomically, while later draft saves remain
+private. Unpublish clears the public snapshot and keeps the draft.
+
+The first publish assigns a globally unique workspace subdomain. Every page in
+that workspace uses the same subdomain; this interface cannot rename it. Reserved
+application subdomains, invalid labels and conflicting claims are rejected. Root
+and nested paths use the existing per-workspace path uniqueness rules. Published
+page metadata is locked until unpublishing. Custom domains are not enabled here.
+
+The existing tenant Host rewrite serves `subdomain.ZENVO_ROOT_DOMAIN/path` using
+only published snapshots from enabled workspaces whose agency owner is active.
+Locally, include the preview port: `http://subdomain.localhost:3115/path`. Production
+requires wildcard DNS/TLS and a correctly configured ingress. Unknown sites,
+unpublished paths and disabled workspaces return 404. Database/content failures
+return a generic 503. The route verifies Host against the rewritten subdomain and
+uses private/no-store responses; internal rewrite URLs remain blocked by proxy.
+
+Public output is standalone escaped HTML without application JavaScript or Clerk.
+Validated button links navigate normally. CSP disallows scripts, forms and frames;
+images are limited to HTTPS, styles to the validated inline properties and bundled
+base CSS. Noindex remains enabled for this development checkpoint. Public text,
+titles, URLs and alt attributes are escaped. Forms, payments, analytics, sitemap
+and production indexing are not enabled yet.
+
+Publication validates image ownership/availability. Media retirement checks every
+published snapshot in that workspace under the same write lock and refuses to
+remove referenced images. Replace the image and republish, or unpublish its pages,
+before deleting it. This initial retention check scans published JSON documents;
+large catalogs should adopt indexed asset references before production scale.
+Malformed published content fails closed for deletion. Agency/workspace deletion
+is still a separate lifecycle operation, and external storage deletion cannot be
+prevented by an application-level guard.
+
+Set `PUBLISH_TEST_BASE_URL=http://localhost:3115` when running `test:funnels` to
+include the real public-host HTTP test against a running build. Test fixtures are
+local and deleted afterward. Tests cover draft separation, access, confirmation,
+stale revisions, subdomain conflicts, unpublished/disabled sites, escaped output,
+image retention and simultaneous publication/retirement. Signed-in publishing
+controls and production DNS/TLS remain unverified.

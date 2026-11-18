@@ -2,6 +2,7 @@ import { Prisma, type PrismaClient } from '../generated/prisma/client';
 import { getSubAccountAccess, lockSubAccountWrite } from './subaccounts';
 import { AgencyAccessError } from './agency-access';
 import { MediaError, maxMediaBytes } from './media-image';
+import { editorMediaIds, validateEditorContent } from './editor-content';
 export type MediaStorage = { upload: (bytes: Buffer, assetId: string) => Promise<{ key: string; url: string }>; remove: (assetId: string) => Promise<void> };
 const options = { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted };
 async function lockWrite(tx: Prisma.TransactionClient, actorId: string, subAccountId: string) {
@@ -40,6 +41,13 @@ export async function retireClientMedia(db: PrismaClient, actorId: string, subAc
     await lockWrite(tx, actorId, subAccountId);
     const asset = await tx.mediaAsset.findFirst({ where: { id, subAccountId, status: { in: ['ACTIVE', 'RETIRED', 'DELETED'] } } });
     if (!asset) throw new MediaError('Image unavailable.', 404);
+    const published = await tx.funnelPage.findMany({ where: { subAccountId, publishedAt: { not: null } }, select: { publishedContent: true } });
+    for (const page of published) {
+      let ids: string[];
+      try { ids = editorMediaIds(validateEditorContent(page.publishedContent)); }
+      catch { throw new MediaError('Published page content must be repaired before removing images.', 409); }
+      if (ids.includes(id)) throw new MediaError('This image is used by a published page. Unpublish or replace it and publish again before deleting.', 409);
+    }
     await tx.media.deleteMany({ where: { id, subAccountId } });
     if (asset.status === 'ACTIVE') await tx.mediaAsset.update({ where: { id }, data: { status: 'RETIRED' } });
   }, options);

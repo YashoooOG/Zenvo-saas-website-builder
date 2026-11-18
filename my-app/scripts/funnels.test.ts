@@ -13,6 +13,9 @@ import { safeEditorHref } from '../src/lib/editor-content';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DraftPreview } from '../src/components/agency/draft-preview';
+import { publishFunnelPage, loadPublishedPage } from '../src/lib/funnel-publishing';
+import { publishedHtml } from '../src/lib/published-html';
+import { retireClientMedia } from '../src/lib/client-media';
 
 const db = createDatabaseClient(process.env.DATABASE_URL);
 const tag = `funnels_${randomUUID()}`;
@@ -207,4 +210,92 @@ test('image content rejects arbitrary source URLs and retains media identity thr
   const updated = applyEditorOperation(doc, { type: 'image', id: 'image', mediaId: 'replacement', alt: 'Updated description' });
   assert.ok(JSON.stringify(updated).includes('replacement')); assert.ok(!JSON.stringify(doc).includes('replacement'));
   assert.throws(() => applyEditorOperation(doc, { type: 'image', id: 'image', mediaId: 'owned', alt: 'x'.repeat(501) }));
+});
+
+test('publishing isolates saved snapshots, requires access/confirmation and supports taking pages offline', async () => {
+  const funnel = await create(); const subdomain = `site-${randomUUID().replaceAll('-', '')}`;
+  await mutateFunnel(db, owner, { ...await context(funnel.id), operation: 'create-page', name: 'Public page', path: '/published' });
+  const page = await db.funnelPage.findFirstOrThrow({ where: { funnelId: funnel.id } });
+  const first = applyEditorOperation(emptyEditorContent(), { type: 'add', parentId: 'root', node: { id: 'text', type: 'text', text: 'Public snapshot' } });
+  await saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content: first });
+  const input = { ...await context(funnel.id), pageId: page.id, subdomain, operation: 'publish', confirmed: true };
+  await assert.rejects(publishFunnelPage(db, guest, input)); await assert.rejects(publishFunnelPage(db, outsider, input));
+  await assert.rejects(publishFunnelPage(db, owner, { ...input, confirmed: false }));
+  await assert.rejects(publishFunnelPage(db, owner, { ...input, subdomain: 'api' }));
+  assert.equal(await loadPublishedPage(db, subdomain, '/published'), null);
+  await publishFunnelPage(db, owner, input);
+  await assert.rejects(publishFunnelPage(db, owner, input), /changed/);
+  const newer = applyEditorOperation(first, { type: 'text', id: 'text', text: 'Unpublished secret' });
+  await saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content: newer });
+  assert.deepEqual((await loadPublishedPage(db, subdomain, '/published'))?.content, first);
+  assert.equal(await loadPublishedPage(db, 'unmapped-tenant', '/published'), null);
+  await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: false } });
+  assert.equal(await loadPublishedPage(db, subdomain, '/published'), null);
+  await db.subAccount.update({ where: { id: subAccountId }, data: { enabled: true } });
+  await publishFunnelPage(db, owner, { ...input, ...await context(funnel.id), operation: 'unpublish' });
+  assert.equal(await loadPublishedPage(db, subdomain, '/published'), null);
+  assert.deepEqual((await getFunnelDraft(db, owner, subAccountId, funnel.id, page.id))?.page.content, newer);
+});
+
+test('published images cannot be retired until their page is unpublished', async () => {
+  const funnel = await create();
+  const account = await db.subAccount.findUniqueOrThrow({ where: { id: subAccountId } });
+  await mutateFunnel(db, owner, { ...await context(funnel.id), operation: 'create-page', name: 'Published image', path: '/retained-image' });
+  const page = await db.funnelPage.findFirstOrThrow({ where: { funnelId: funnel.id } });
+  const asset = await db.mediaAsset.create({ data: { actorId: owner, subAccountId, status: 'ACTIVE', fileKey: randomUUID() } });
+  const media = await db.media.create({ data: { id: asset.id, subAccountId, storageKey: asset.fileKey!, name: 'Retained image', mimeType: 'image/webp', sizeBytes: BigInt(100), url: 'https://example.com/retained.webp' } });
+  const content = applyEditorOperation(emptyEditorContent(), { type: 'add', parentId: 'root', node: { id: 'image', type: 'image', mediaId: media.id, alt: 'Retained' } });
+  await saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content });
+  const input = { pageId: page.id, subdomain: account.subdomain!, operation: 'publish', confirmed: true };
+  await publishFunnelPage(db, owner, { ...await context(funnel.id), ...input });
+  await assert.rejects(retireClientMedia(db, owner, subAccountId, media.id), /published page/);
+  assert.ok(await db.media.findUnique({ where: { id: media.id } }));
+  await publishFunnelPage(db, owner, { ...await context(funnel.id), ...input, operation: 'unpublish' });
+  await retireClientMedia(db, owner, subAccountId, media.id);
+  assert.equal(await db.media.findUnique({ where: { id: media.id } }), null);
+  await assert.rejects(publishFunnelPage(db, owner, { ...await context(funnel.id), ...input }), /unavailable images/);
+});
+
+test('public HTML escapes content and attributes while retaining validated links', () => {
+  const content = applyEditorOperation(emptyEditorContent(), { type: 'add', parentId: 'root', node: { id: 'button', type: 'button', text: '<script>alert(1)</script>', href: 'https://example.com/?x="unsafe"' } });
+  const html = publishedHtml('<title attack>', content, []);
+  assert.ok(html.includes('&lt;title attack&gt;')); assert.ok(html.includes('&lt;script&gt;')); assert.ok(!html.includes('<script>'));
+  assert.ok(html.includes('&quot;unsafe&quot;')); assert.ok(html.includes('href="https://example.com/'));
+});
+
+test('a sibling workspace cannot claim an existing subdomain', async () => {
+  const funnel = await create(siblingId); const account = await db.subAccount.findUniqueOrThrow({ where: { id: subAccountId } });
+  await mutateFunnel(db, owner, { subAccountId: siblingId, funnelId: funnel.id, revision: 0, operation: 'create-page', name: 'Other site', path: '/' });
+  const page = await db.funnelPage.findFirstOrThrow({ where: { funnelId: funnel.id } });
+  await assert.rejects(publishFunnelPage(db, owner, { subAccountId: siblingId, funnelId: funnel.id, pageId: page.id, revision: 1, subdomain: account.subdomain!, operation: 'publish', confirmed: true }), /already in use/);
+  assert.equal((await db.funnelPage.findUniqueOrThrow({ where: { id: page.id } })).publishedAt, null);
+});
+
+test('simultaneous image retirement and publication cannot leave a published missing image', async () => {
+  const funnel = await create(); const account = await db.subAccount.findUniqueOrThrow({ where: { id: subAccountId } });
+  await mutateFunnel(db, owner, { ...await context(funnel.id), operation: 'create-page', name: 'Race page', path: '/publish-race' });
+  const page = await db.funnelPage.findFirstOrThrow({ where: { funnelId: funnel.id } });
+  const asset = await db.mediaAsset.create({ data: { actorId: owner, subAccountId, status: 'ACTIVE', fileKey: randomUUID() } });
+  await db.media.create({ data: { id: asset.id, subAccountId, storageKey: asset.fileKey!, name: 'Race image', mimeType: 'image/webp', sizeBytes: BigInt(100), url: 'https://example.com/race.webp' } });
+  const content = applyEditorOperation(emptyEditorContent(), { type: 'add', parentId: 'root', node: { id: 'image', type: 'image', mediaId: asset.id, alt: '' } });
+  await saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content });
+  const input = { ...await context(funnel.id), pageId: page.id, subdomain: account.subdomain!, operation: 'publish', confirmed: true };
+  const results = await Promise.allSettled([publishFunnelPage(db, owner, input), retireClientMedia(db, owner, subAccountId, asset.id)]);
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  const current = await db.funnelPage.findUniqueOrThrow({ where: { id: page.id } });
+  if (current.publishedAt) assert.ok(await db.media.findUnique({ where: { id: asset.id } }));
+});
+
+test('public HTTP serves only published snapshots on their tenant host', { skip: !process.env.PUBLISH_TEST_BASE_URL }, async () => {
+  const base = new URL(process.env.PUBLISH_TEST_BASE_URL!);
+  assert.ok(['localhost', '127.0.0.1'].includes(base.hostname));
+  const funnel = await create(); const account = await db.subAccount.findUniqueOrThrow({ where: { id: subAccountId } });
+  await mutateFunnel(db, owner, { ...await context(funnel.id), operation: 'create-page', name: 'HTTP published fixture', path: '/http-published' });
+  const page = await db.funnelPage.findFirstOrThrow({ where: { funnelId: funnel.id } });
+  await publishFunnelPage(db, owner, { ...await context(funnel.id), pageId: page.id, subdomain: account.subdomain!, operation: 'publish', confirmed: true });
+  const response = await fetch(new URL('/http-published', base), { headers: { host: `${account.subdomain}.localhost:${base.port}` }, redirect: 'manual' });
+  assert.equal(response.status, 200); assert.match(response.headers.get('content-security-policy')!, /default-src 'none'/);
+  assert.match(response.headers.get('cache-control')!, /no-store/); assert.match(await response.text(), /HTTP published fixture/);
+  const unknown = await fetch(new URL('/http-published', base), { headers: { host: `not-published.localhost:${base.port}` }, redirect: 'manual' });
+  assert.equal(unknown.status, 404);
 });

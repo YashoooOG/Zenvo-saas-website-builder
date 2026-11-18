@@ -25,7 +25,8 @@ export async function getFunnel(db: PrismaClient, actor: string, subAccountId: s
   const access = await getSubAccountAccess(db, actor, subAccountId);
   if (!access) return null;
   const funnel = await db.funnel.findFirst({ where: { id: funnelId, subAccountId }, include: { pages: { select: { id: true, name: true, path: true, publishedAt: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] } } });
-  return funnel ? { access, funnel } : null;
+  const site = await db.subAccount.findUnique({ where: { id: subAccountId }, select: { subdomain: true } });
+  return funnel ? { access, funnel, subdomain: site?.subdomain ?? null } : null;
 }
 export async function createFunnel(db: PrismaClient, actor: string, input: unknown) {
   const data = z.object({ subAccountId: id, name, creationKey: z.uuid() }).strict().parse(input);

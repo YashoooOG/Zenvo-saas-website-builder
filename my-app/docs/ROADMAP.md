@@ -442,7 +442,18 @@ build including TypeScript, lint, 34 editor/funnel/media tests and nine HTTP
 authentication checks pass (43 total). The preview on port 3115 runs this build.
 No migration is needed. Signed-in visual selection
 checks remain pending. Next is public publishing with draft separation and media
-retention safeguards. Awaiting commit.
+retention safeguards. Committed as `adb0cd3`.
+
+Stage 17a adds explicit publish/unpublish controls, unique workspace subdomains
+and public HTML from validated published snapshots. Draft edits remain private;
+revoked publication and archived workspaces stop serving. Published images cannot
+be retired until unreferenced, with shared locks preventing publication/deletion
+races. Production build, final TypeScript check, lint, 29 funnel/media tests
+(including real tenant-host HTTP), nine auth checks and four tenant-routing checks
+pass (42 total). The preview runs this build on port 3115. No migration is needed.
+Signed-in publishing interaction and production
+DNS/TLS remain pending. Next is server-verified funnel checkout preparation.
+Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
