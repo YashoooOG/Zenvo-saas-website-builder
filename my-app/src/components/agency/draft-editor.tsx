@@ -5,6 +5,7 @@ import { type EditorDocument, type EditorOperation } from '@/lib/editor-operatio
 import { createEditorHistory, editorHasChanges, recordEditorChange, undoEditor, redoEditor, markEditorSaved } from '@/lib/editor-history';
 import type { EditorNode } from '@/lib/editor-content';
 import { ResponsiveDraftPreview } from './responsive-draft-preview';
+import { EditorStructure } from './editor-structure';
 import { EditorStyleControls, ButtonDestination } from './editor-style-controls';
 
 function Controls({ node, root = false, disabled, change }: { node: EditorNode; root?: boolean; disabled: boolean; change: (operation: EditorOperation) => void }) {
@@ -58,7 +59,7 @@ export function DraftEditor({ subAccountId, funnelId, pageId, initial, initialRe
     <button className="text-action" disabled={pending} onClick={() => { if (!dirty || window.confirm('Discard unsaved edits and reload the saved draft?')) window.location.reload(); }}>Reload saved draft</button>
     <span role="status">{message || (dirty ? 'Unsaved changes' : editable ? 'Saved draft' : 'Read-only preview')}</span>
   </div><div className="agency-settings-grid">
-    {editable && <section aria-label="Draft controls"><Controls node={document.root} root disabled={pending} change={change} /></section>}
+    {editable && <section aria-label="Draft controls"><EditorStructure root={document.root} disabled={pending} change={change} /><Controls node={document.root} root disabled={pending} change={change} /></section>}
     <ResponsiveDraftPreview node={document.root} />
   </div></div>;
 }

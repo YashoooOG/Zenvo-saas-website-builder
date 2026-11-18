@@ -56,3 +56,44 @@ test('responsive preview exposes three fixed canvas widths and starts at desktop
   assert.match(html, /width:1024px/); assert.match(html, /overflow-x:auto/);
   assert.match(html, /Tablet/); assert.match(html, /Phone/); assert.match(html, /tabindex="0"/);
 });
+
+function nested() {
+  let history = recordEditorChange(initial(), { type: 'add', parentId: 'root', node: { id: 'a', type: 'container', children: [{ id: 'one', type: 'text', text: 'One' }, { id: 'two', type: 'text', text: 'Two' }] } });
+  history = recordEditorChange(history, { type: 'add', parentId: 'root', node: { id: 'b', type: 'container', children: [] } });
+  return history;
+}
+function children(history: ReturnType<typeof nested>, id: string): string[] {
+  const stack = [history.present.root];
+  while (stack.length) { const node = stack.pop()!; if (node.type === 'container') { if (node.id === id) return node.children.map(child => child.id); stack.push(...node.children); } }
+  throw new Error('Missing container');
+}
+test('placement supports cross-container nesting, empty destinations, and moving back to root', () => {
+  let history = nested();
+  history = recordEditorChange(history, { type: 'place', id: 'one', parentId: 'b', beforeId: null });
+  assert.deepEqual(children(history, 'a'), ['two']); assert.deepEqual(children(history, 'b'), ['one']);
+  history = recordEditorChange(history, { type: 'place', id: 'one', parentId: 'root', beforeId: 'a' });
+  assert.deepEqual(children(history, 'root'), ['one', 'a', 'b']); assert.deepEqual(children(history, 'b'), []);
+});
+test('same-parent placement handles forward/backward ordering and no-op slots', () => {
+  let history = nested();
+  history = recordEditorChange(history, { type: 'place', id: 'one', parentId: 'a', beforeId: null });
+  assert.deepEqual(children(history, 'a'), ['two', 'one']);
+  history = recordEditorChange(history, { type: 'place', id: 'one', parentId: 'a', beforeId: 'two' });
+  assert.deepEqual(children(history, 'a'), ['one', 'two']);
+  assert.equal(recordEditorChange(history, { type: 'place', id: 'one', parentId: 'a', beforeId: 'two' }), history);
+  assert.equal(recordEditorChange(history, { type: 'place', id: 'one', parentId: 'a', beforeId: 'one' }), history);
+});
+test('placement rejects root moves, descendant cycles, non-containers and foreign insertion targets', () => {
+  const history = recordEditorChange(nested(), { type: 'place', id: 'b', parentId: 'a', beforeId: null });
+  const before = JSON.stringify(history);
+  for (const [id, parentId, beforeId] of [['root', 'a', null], ['a', 'a', null], ['a', 'b', null], ['one', 'two', null], ['one', 'b', 'two'], ['missing', 'root', null]]) {
+    assert.throws(() => recordEditorChange(history, { type: 'place', id: id!, parentId: parentId!, beforeId }));
+  }
+  assert.equal(JSON.stringify(history), before);
+});
+test('moving a whole section creates one history step and undo/redo preserves every child', () => {
+  const start = nested(); const changed = recordEditorChange(start, { type: 'place', id: 'a', parentId: 'b', beforeId: null });
+  assert.equal(changed.past.length, start.past.length + 1);
+  assert.deepEqual(children(changed, 'a'), ['one', 'two']); assert.deepEqual(children(changed, 'b'), ['a']);
+  assert.deepEqual(undoEditor(changed).present, start.present); assert.deepEqual(redoEditor(undoEditor(changed)).present, changed.present);
+});

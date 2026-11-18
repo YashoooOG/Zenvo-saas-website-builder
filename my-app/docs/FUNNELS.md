@@ -112,3 +112,33 @@ Run `bun run test:editor-history` for exact restoration, save baselines, branch
 behavior, no-ops, history bounds, nested removal and preview markup checks.
 Interactive keyboard and viewport verification remains pending in a signed-in
 browser; server-rendered markup tests do not replace those checks.
+
+## Nested drag-and-drop (16b)
+
+The Arrange blocks structure panel uses the installed dnd-kit core sensors. Drag
+handles move existing blocks to explicit insertion lines before a sibling or at
+the end of a section/page. Empty sections accept blocks. The page root cannot be
+moved, and destinations inside the active section are disabled. Moving blocks
+updates the live preview; it does not save until Save draft is used.
+
+A keyboard-focused handle uses Space/Enter to pick up/drop, arrow keys to advance
+through enabled insertion lines in document order, and Escape to cancel. Pointer
+activation requires an 8px movement to avoid accidental drags. Existing up/down
+controls remain available. Guests do not receive arrangement controls and saving
+disables dragging. This checkpoint rearranges blocks in the structure panel;
+canvas dragging and dragging new palette elements are not implemented yet.
+
+The immutable placement operation independently rejects root/self/descendant
+moves, non-container destinations, missing objects and insertion targets outside
+the destination. It removes the source before computing the destination index,
+so forward and backward moves behave consistently. Whole-document validation
+runs afterward to enforce existing depth/size/child limits. A successful move adds
+one undo step; no-op positions and canceled drags add none. Save still enforces
+tenant access and validates the final document on the server.
+
+Tests cover cross-section moves, empty sections, root insertion, same-parent
+ordering, invalid targets, unchanged input after rejection, and exact undo/redo of
+nested sections. Pointer/touch/keyboard interaction in a signed-in browser remains
+unverified; these tests exercise operations rather than simulate real drag gestures.
+
+Reference: [dnd-kit core keyboard sensor](https://dndkit.com/legacy/api-documentation/sensors/keyboard/).

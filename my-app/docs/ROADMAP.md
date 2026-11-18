@@ -424,6 +424,15 @@ undo remains available. Production build including TypeScript, lint, twenty
 history/funnel tests and nine HTTP authentication checks pass (29 total). The
 preview on port 3115 runs this build. No migration is needed.
 Signed-in visual/keyboard checks remain pending. Next is nested drag-and-drop.
+Committed as `a846945`.
+
+Stage 16b adds nested drag-and-drop in the editor structure panel, with explicit
+insertion slots and pointer/keyboard controls. Placement prevents cycles and root
+moves, validates resulting content, and integrates with undo/redo. Production
+build including TypeScript, lint, 24 editor/funnel tests and nine HTTP authentication
+checks pass (33 total). The preview on port 3115 runs this build. No migration is
+needed. Signed-in gesture/visual checks
+remain pending. Next is media elements with workspace ownership validation.
 Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
