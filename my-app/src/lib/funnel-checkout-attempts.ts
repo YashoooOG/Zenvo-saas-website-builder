@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import type { PrismaClient } from '../generated/prisma/client';
+import type { PrismaClient, FunnelPage } from '../generated/prisma/client';
 import { AgencyAccessError, lockAgencyAccess } from './agency-access';
 import { getSubAccountAccess } from './subaccounts';
 import { pageOfferSchema } from './page-offers';
@@ -11,6 +11,8 @@ export class FunnelCheckoutConflict extends Error {}
 const id = z.string().min(1).max(191);
 const inputSchema = z.object({ subAccountId: id, funnelId: id, pageId: id, requestId: z.uuid() }).strict();
 const lifetimeMs = 30 * 60 * 1000;
+export const publicationFingerprint = (page: Pick<FunnelPage, 'publishedAt' | 'publishedContent' | 'publishedOffer'>) =>
+  createHash('sha256').update(JSON.stringify([page.publishedAt, page.publishedContent, page.publishedOffer])).digest('hex');
 
 // Internal owner-only preparation service. No public action or provider write is
 // exposed here. A prepared attempt is neither a paid order nor a Stripe session.
@@ -22,8 +24,7 @@ export async function prepareFunnelCheckout(db: PrismaClient, actorId: string, i
   const page = await db.funnelPage.findFirst({ where: { id: data.pageId, subAccountId: data.subAccountId, funnelId: data.funnelId } });
   if (!page?.publishedAt || !page.publishedContent || !page.publishedOffer) throw new FunnelCheckoutConflict('Publish a page offer first.');
   const offer = pageOfferSchema.parse(page.publishedOffer);
-  const fingerprint = (value: typeof page) => createHash('sha256').update(JSON.stringify([value.publishedAt, value.publishedContent, value.publishedOffer])).digest('hex');
-  const publicationHash = fingerprint(page);
+  const publicationHash = publicationFingerprint(page);
   const configuration = { ...env };
 
   // Serialize with publishing, revocation, ownership and workspace changes.
@@ -33,7 +34,7 @@ export async function prepareFunnelCheckout(db: PrismaClient, actorId: string, i
     const agency = await lockAgencyAccess(tx, actorId, access.agencyId, 'payments');
     if (!await getSubAccountAccess(tx, actorId, data.subAccountId)) throw new AgencyAccessError('Page unavailable.');
     const current = await tx.funnelPage.findFirst({ where: { id: data.pageId, subAccountId: data.subAccountId, funnelId: data.funnelId } });
-    if (!current?.publishedAt || fingerprint(current) !== publicationHash) throw new FunnelCheckoutConflict('The published page changed. Start a new checkout.');
+    if (!current?.publishedAt || publicationFingerprint(current) !== publicationHash) throw new FunnelCheckoutConflict('The published page changed. Start a new checkout.');
     const ledger = await tx.connectAccountSync.findUnique({ where: { accountId: offer.accountId } });
     if (agency.agency.stripeConnectAccountId !== offer.accountId || ledger?.linkedStartedAt?.toISOString() !== offer.authorizedAt ||
       (ledger.revokedAt && Math.floor(ledger.linkedStartedAt.getTime() / 1000) <= ledger.revokedAt.getTime() / 1000)) {

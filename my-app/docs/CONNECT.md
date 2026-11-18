@@ -308,3 +308,62 @@ responses to cover persistence/retries, concurrent duplicates, authorization,
 input tampering, scope/request conflicts, expiry, draft/public separation,
 republication, revocation, changes during provider reads and failure recovery.
 Real Stripe payments remain untested and the public checkout UI is not enabled.
+
+## Connected checkout session creation (17e)
+
+`startFunnelSession` accepts only an attempt ID and an authenticated owner actor.
+It is an internal test-mode service, not a public route or Server Action. The
+Stripe adapter sends every price/session operation to the stored connected
+account. The platform's subscription checkout remains separate.
+
+Before the first session request, the service rechecks live account and price
+availability and compares the amount, currency, fee and tax behavior with the
+prepared snapshot. It then commits the entire Checkout Session request JSON before
+calling Stripe. The request fixes quantity at one, uses the stored price and fee,
+turns off adaptive pricing, automatic tax and promotion codes, restricts eligible
+payment methods to cards, and attaches attempt/agency metadata to both the session
+and PaymentIntent. An explicit zero fee omits `application_fee_amount`.
+
+Success and cancellation return to the owner's funnel management page using the
+configured canonical application origin. These URLs are not supplied by callers.
+The frozen request has a one-hour Stripe session expiry. The preparation attempt's
+original 30-minute retry window remains unchanged, so replay stays within Stripe's
+minimum session-creation expiry window and idempotency retention period. Request
+JSON and idempotency keys never rotate after a timeout or invalid response. Changes
+to deployment fee/origin configuration do not mutate a pending request.
+
+Session creation/retrieval runs under account-first and then user/agency locks,
+serializing with publishing, account revocation and owner/workspace changes. These
+are deliberately bounded external calls: SDK timeout 10 seconds, no automatic
+network retries, transaction timeout 30 seconds. A lost response or rolled-back
+session mapping leaves the separately committed request marked `requested`.
+Retrying the same attempt replays that exact request/key; once an ID is stored,
+retries retrieve that session instead of creating another. This lock strategy
+trades short agency write contention for serialization; a future worker/lease
+implementation must preserve the same ordering and durable request behavior.
+
+Responses must match the attempt and agency metadata, connected price line item,
+quantity, total/subtotal, currency, test mode and frozen expiry. Tax, shipping and
+discount totals must be zero. Open session redirects allow only HTTPS URLs on
+`checkout.stripe.com`, without credentials or custom ports. Completed/expired
+sessions return no redirect and do not cause replacement sessions. A `complete`
+session status is not payment confirmation and never grants access.
+
+The new nullable fields (`sessionRequest`, `sessionId`, `sessionStatus`) preserve
+existing attempts. Apply `bun run db:migrate` for
+`20261119030000_funnel_checkout_sessions`; run `bun run test:funnel-sessions`.
+Tests use injected provider responses with real local MySQL, including lost
+responses, concurrent requests, changed configuration, tampered responses,
+unauthorized access and stale publications/connections.
+
+Live Stripe testing remains pending. Sessions already created at Stripe can remain
+open after an attempt expires or a local page/connection changes; this service
+stops returning their URLs but does not cancel them remotely. No public payment
+button is exposed until reconciliation, remote expiration and verified Connect
+payment events handle those outcomes. Reconciliation must recover `requested`
+attempts, inspect known sessions after local expiry, and never infer payment from
+a redirect or browser claim.
+
+References: [Create a Checkout Session](https://docs.stripe.com/api/checkout/sessions/create),
+[Stripe idempotency](https://docs.stripe.com/api/idempotent_requests), and
+[direct charges](https://docs.stripe.com/connect/direct-charges).

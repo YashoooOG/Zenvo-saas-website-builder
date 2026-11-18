@@ -374,6 +374,9 @@ model FunnelCheckoutAttempt {
   feeBasisPoints Int
   taxBehavior String @db.VarChar(16)
   idempotencyKey String @unique @db.VarChar(64)
+  sessionRequest Json?
+  sessionId String? @unique @db.VarChar(191)
+  sessionStatus String? @db.VarChar(16)
   createdAt DateTime @default(now()) @db.DateTime(3)
   expiresAt DateTime @db.DateTime(3)
   @@unique([actorId, requestId])

@@ -487,7 +487,18 @@ build (including TypeScript), lint and nine HTTP authentication checks also pass
 The additive `20261119020000_funnel_checkout_attempts` migration is applied locally
 with no schema drift. No public endpoint or Stripe session is created yet; provider
 and payment UI checks remain pending. Next is Stripe session creation with retry
-and reconciliation handling. Awaiting commit.
+and reconciliation handling. Committed as `6dc62d5`.
+
+Stage 17e adds internal owner-only connected-account Checkout Session creation.
+Exact request JSON is committed before provider writes; retries reuse the stored
+request/key or retrieve the saved session. Responses are validated against frozen
+price/amount/metadata and safe redirect rules. Session completion does not grant
+access. The additive `20261119030000_funnel_checkout_sessions` migration is applied
+locally with no schema drift. Production build (including TypeScript), lint, ten
+session tests, 16 attempt/price tests and nine HTTP authentication checks pass
+(35 tests total). The preview on port 3115 runs this build. Live Stripe testing
+remains pending. Next is recovery/expiration and verified Connect payment-event
+reconciliation before public checkout. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

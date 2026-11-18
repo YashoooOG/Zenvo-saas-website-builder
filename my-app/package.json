@@ -52,7 +52,8 @@
     "test:editor-history": "bun test scripts/editor-history.test.ts",
     "test:funnel-prices": "bun --env-file=.env.local test scripts/funnel-price-check.test.ts",
     "test:page-offers": "bun --env-file=.env.local test scripts/page-offers.test.ts",
-    "test:funnel-attempts": "bun --env-file=.env.local test scripts/funnel-checkout-attempts.test.ts"
+    "test:funnel-attempts": "bun --env-file=.env.local test scripts/funnel-checkout-attempts.test.ts",
+    "test:funnel-sessions": "bun --env-file=.env.local test scripts/funnel-checkout-sessions.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
