@@ -353,6 +353,34 @@ model FunnelPage {
   @@index([subAccountId, funnelId])
 }
 
+// Immutable preparation snapshots are retained even if a page is deleted.
+// Application code must recheck live tenant/offer access before using them.
+model FunnelCheckoutAttempt {
+  id String @id @default(uuid()) @db.VarChar(36)
+  actorId String @db.VarChar(191)
+  requestId String @db.VarChar(36)
+  agencyId String @db.VarChar(191)
+  subAccountId String @db.VarChar(191)
+  funnelId String @db.VarChar(191)
+  pageId String @db.VarChar(191)
+  publicationHash String @db.Char(64)
+  accountId String @db.VarChar(191)
+  authorizedAt DateTime @db.DateTime(3)
+  priceId String @db.VarChar(191)
+  productName String @db.VarChar(512)
+  currency String @db.Char(3)
+  amount Int
+  feeAmount Int
+  feeBasisPoints Int
+  taxBehavior String @db.VarChar(16)
+  idempotencyKey String @unique @db.VarChar(64)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  expiresAt DateTime @db.DateTime(3)
+  @@unique([actorId, requestId])
+  @@index([agencyId, createdAt])
+  @@index([expiresAt])
+}
+
 model Media {
   id String @id @default(cuid()) @db.VarChar(191)
   subAccountId String @db.VarChar(191)

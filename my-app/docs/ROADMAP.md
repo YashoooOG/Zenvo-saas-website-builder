@@ -474,7 +474,20 @@ attempt or Stripe session is created yet. Production build (including TypeScript
 lint, 28 offer/funnel tests and nine HTTP authentication checks pass (37 total).
 The database schema matches the migration with no drift, and the preview on port
 3115 runs this build. Signed-in UI/provider checks remain pending. Durable checkout
-attempts are the next checkpoint. Awaiting commit.
+attempts are the next checkpoint. Committed as `e3c28ae`.
+
+Stage 17d adds durable, owner-only checkout preparation for published offers.
+It persists verified price/fee snapshots, a publication fingerprint, connection
+generation, a 30-minute expiry and stable server-generated idempotency keys.
+Repeated/concurrent requests converge; changed publications, permissions or
+connections reject stale attempts. Nine new attempt tests and 14 existing
+price/offer tests pass, using injected Stripe responses and local MySQL. Production
+build (including TypeScript), lint and nine HTTP authentication checks also pass
+(32 tests total). The preview on port 3115 runs this build.
+The additive `20261119020000_funnel_checkout_attempts` migration is applied locally
+with no schema drift. No public endpoint or Stripe session is created yet; provider
+and payment UI checks remain pending. Next is Stripe session creation with retry
+and reconciliation handling. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

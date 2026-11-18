@@ -268,3 +268,43 @@ rejected amount/account injection, draft/public separation, stale updates,
 reconnection, revocation, unpublishing and archived workspaces. This checkpoint
 creates no payment attempts or Stripe sessions; durable checkout attempts are next.
 Signed-in UI and real Stripe verification remain pending.
+
+## Durable checkout preparation (17d)
+
+`prepareFunnelCheckout` is an internal, owner-only service. It accepts scoped page
+IDs and a UUID request ID, resolves the published offer on the server, verifies
+current Stripe account/product/price data using the existing price checker, and
+stores an immutable `FunnelCheckoutAttempt`. Browser-supplied amounts, fees, price
+IDs and account IDs are rejected. Stripe configuration can remain empty; new
+preparations then fail before a provider request or attempt insert.
+
+The snapshot includes the published page fingerprint, account and authorization
+generation, price, currency, amount, product name, fee rate/amount, tax behavior,
+creation/expiry times and a server-generated idempotency key. It represents one
+fixed-price unit in test mode. Tax behavior is recorded, not a tax calculation;
+no shipping, discounts or automatic tax are applied here.
+
+Request IDs are unique per initiating owner. Repeating the same request returns
+the original snapshot without refreshing prices or extending its 30-minute
+lifetime. Concurrent requests serialize using the account-then-user/agency lock
+order and converge on one row. A request cannot be rebound to another page or
+publication. Expired attempts require a new request ID. Draft-only edits do not
+invalidate the published snapshot; republishing, unpublishing, disabled workspaces,
+owner access loss and account revocation/reconnection block stale preparations.
+All live scope, publication and connection checks run again after provider reads.
+Provider reads are outside database transactions; no Stripe writes occur.
+
+Rows have no cascading page/user foreign keys so deleting content cannot erase
+checkout history. These stored IDs are historical references, never authorization.
+There is no public endpoint, action, payment button, Stripe session, paid state or
+webhook fulfillment in this checkpoint. The next session-creation stage must
+recheck eligibility, use the persisted idempotency key and frozen request parameters,
+handle ambiguous provider outcomes, and reconcile verified payment events. A
+prepared row alone must never be treated as a purchase or grant access.
+
+Apply `bun run db:migrate` for `20261119020000_funnel_checkout_attempts` and run
+`bun run test:funnel-attempts`. Nine tests use local MySQL and injected Stripe
+responses to cover persistence/retries, concurrent duplicates, authorization,
+input tampering, scope/request conflicts, expiry, draft/public separation,
+republication, revocation, changes during provider reads and failure recovery.
+Real Stripe payments remain untested and the public checkout UI is not enabled.
