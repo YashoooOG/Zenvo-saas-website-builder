@@ -64,6 +64,7 @@ model Agency {
   checkout AgencyCheckout?
   billingRecoveries BillingRecoveryReceipt[]
   connectAttempts ConnectOAuthAttempt[]
+  catalog AgencyCatalog?
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
   memberships AgencyMembership[]
@@ -71,6 +72,15 @@ model Agency {
   invitations AgencyInvitation[]
   @@index([ownerId])
   @@unique([ownerId, creationKey])
+}
+
+model AgencyCatalog {
+  agencyId String @id @db.VarChar(191)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  syncToken String @db.VarChar(36)
+  accountId String? @db.VarChar(191)
+  products Json?
+  syncedAt DateTime? @db.DateTime(3)
 }
 
 model ConnectAccountSync {

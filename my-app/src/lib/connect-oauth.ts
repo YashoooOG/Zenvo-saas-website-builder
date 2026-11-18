@@ -75,6 +75,7 @@ export async function completeConnectOAuth(db: PrismaClient, actorId: string, ca
       if (attempt.status !== 'EXCHANGING' || attempt.expiresAt <= new Date() || agency.stripeConnectAccountId) throw invalid();
       if (await tx.agency.findUnique({ where: { stripeConnectAccountId: token.stripe_user_id } })) throw invalid();
       await tx.agency.update({ where: { id: found.agencyId }, data: { stripeConnectAccountId: token.stripe_user_id } });
+      await tx.agencyCatalog.deleteMany({ where: { agencyId: found.agencyId } });
       await tx.connectAccountSync.update({ where: { accountId: token.stripe_user_id }, data: { linkedStartedAt: attempt.createdAt } });
       await tx.connectOAuthAttempt.update({ where: { id: found.id }, data: { status: 'SUCCEEDED', accountId: token.stripe_user_id, completedAt: new Date() } });
     }, { isolationLevel: 'ReadCommitted' });

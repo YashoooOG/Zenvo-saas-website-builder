@@ -114,7 +114,42 @@ require a fresh authorization. Keep deployment clocks synchronized.
 Receipts and revocation tombstones currently have no automatic deletion. Do not
 purge them while callbacks or event retries can still arrive; define retention and
 operational recovery policies before production. There is no live-mode handling,
-manual disconnect button, product synchronization, or sales processing yet.
+manual disconnect button or sales processing yet.
+
+## Connected product catalog
+
+Stage 14d adds an owner-only “Sync products from Stripe” form to Payments when the
+connected account can be verified. The adapter uses the stored account ID in the
+Stripe-Account request option for every product/price list call. It does not accept
+an account ID from the browser or write products back to Stripe.
+
+A complete import reads products plus separate active/inactive price lists, with
+100 records per page and a maximum of five pages per collection (500 products,
+500 active prices, 500 inactive prices). A 30-second budget is checked before each
+page request; each request also has a ten-second SDK timeout and zero retries.
+Exceeding the limits fails the import without replacing the previous catalog.
+Pagination is not a provider-side transactional snapshot: changes during an import
+can require retry, and future checkout must revalidate the selected price with Stripe.
+
+Only test-mode objects with matching product references are accepted. Duplicate
+IDs/cursors, malformed responses, missing products and provider errors fail the
+whole import. Product names and price IDs, currency, amount, activity and type are
+retained; metadata and unrelated provider fields are discarded. A complete empty
+result intentionally replaces the local catalog with an empty list.
+
+The initial checkout subset is active fixed-integer, per-unit, one-time prices on
+active products without custom amounts or quantity transforms. Other prices remain
+visible as unsupported. The review currently displays exact amounts in currency
+minor units; it does not assume every currency has two decimal places. Imported
+prices do not authorize a payment and no product can be sold from this checkpoint.
+
+Remote reads happen outside database transactions. A durable synchronization claim
+ensures an older overlapping request cannot overwrite a newer requested import.
+Final persistence rechecks active ownership, account mapping, authorization start
+and revocation state under the same account-first locks as Connect events. Revoking
+or reauthorizing the account clears the old catalog, and revoked/unmapped catalogs
+are not exposed. The last successful snapshot and timestamp otherwise remain
+available after import failure. There is no automatic product webhook sync yet.
 
 ## Verification
 
@@ -130,10 +165,14 @@ Run `bun run test:connect-webhook` for signature rejection, replay/concurrency,
 current-state refresh, provider retry, tenant isolation, delayed revocation, and
 revocation during OAuth completion. These tests use signed fixtures and real local
 MySQL; they do not contact Stripe.
-Real Connect configuration, provider reads, OAuth and event delivery remain unverified while
+Run `bun run test:catalog` for catalog persistence, pagination bounds, failures,
+owner access, concurrent imports, and connection changes during remote reads.
+Real Connect configuration, provider reads, catalog imports, OAuth and event delivery remain unverified while
 Stripe settings are empty. No real Stripe account is created or modified by these
 tests.
 
 References: [OAuth for Standard accounts](https://docs.stripe.com/connect/oauth-reference),
 [retrieve an account](https://docs.stripe.com/api/accounts/retrieve),
 [Connect webhooks](https://docs.stripe.com/connect/webhooks).
+
+Catalog references: [products](https://docs.stripe.com/api/products/list), [prices](https://docs.stripe.com/api/prices/list).

@@ -47,6 +47,7 @@ export async function syncConnectEvent(db: PrismaClient, event: ConnectEvent, re
       // conservatively revoke; an owner can explicitly authorize again.
       if (mapped && (!ledger.linkedStartedAt || Math.floor(ledger.linkedStartedAt.getTime() / 1000) <= event.created)) {
         await tx.agency.update({ where: { id: current!.id }, data: { stripeConnectAccountId: null } });
+        await tx.agencyCatalog.deleteMany({ where: { agencyId: current!.id } });
         await tx.connectAccountSync.update({ where: { accountId: event.account }, data: { status: Prisma.DbNull, syncedAt: new Date() } });
       }
     } else if (mapped) {

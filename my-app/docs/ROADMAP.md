@@ -362,7 +362,20 @@ drift. Production build including TypeScript, lint, 37 database/permission tests
 and nine HTTP authentication checks pass (46 total). The preview on port 3115
 runs this build. Stripe settings remain empty, so actual
 provider event delivery remains unverified. No new browser screen is introduced.
-Product synchronization is the next checkpoint. Awaiting commit.
+Product synchronization is the next checkpoint. Committed as `7d886e3`.
+
+Stage 14d adds owner-controlled connected-account product and price imports with
+bounded pagination, sanitized local snapshots, and a catalog review on Payments.
+Failed or overlapping imports cannot partially replace the previous catalog;
+revocation or reauthorization invalidates it. The additive
+`20261118040000_connected_catalog` migration is applied locally with zero schema
+drift. Production build including TypeScript, lint, ten catalog tests, 21 OAuth/
+webhook regressions and nine HTTP authentication checks pass (40 total). The
+preview runs this build on port 3115. Real Stripe imports and signed-in visual
+verification remain pending while
+Stripe is unconfigured and the prior browser session is unavailable. Checkout,
+automatic product events and application fees are not activated. Next is fee
+configuration before the funnel builder. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

@@ -2,6 +2,9 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+import { CatalogError, syncConnectedCatalog } from '@/lib/connected-catalog';
+import { stripeCatalogProvider } from '@/lib/stripe-connect';
 import { getDb } from '@/lib/db';
 import { requireWorkspaceUser } from '@/lib/workspace-user';
 import { AgencyAccessError } from '@/lib/agency-access';
@@ -20,4 +23,18 @@ export async function startConnectAction(_previous: { message: string }, data: F
     return { message: error instanceof AgencyAccessError || error instanceof ConnectConfigurationError || error instanceof ConnectOAuthError ? error.message : 'Authorization could not be started. Please try again.' };
   }
   redirect(destination);
+}
+
+export async function syncCatalogAction(_previous: { message: string }, data: FormData) {
+  await auth.protect();
+  const user = await requireWorkspaceUser();
+  try {
+    const agencyId = data.get('agencyId');
+    if (typeof agencyId !== 'string' || !agencyId || agencyId.length > 191) throw new AgencyAccessError('Agency unavailable.');
+    const result = await syncConnectedCatalog(getDb(), user.id, agencyId, process.env, stripeCatalogProvider);
+    revalidatePath(`/agency/${agencyId}/payments`);
+    return { message: `Synchronized ${result.products} products and ${result.prices} prices.` };
+  } catch (error) {
+    return { message: error instanceof AgencyAccessError || error instanceof ConnectConfigurationError || error instanceof CatalogError ? error.message : 'Products could not be synchronized. Your previous catalog is unchanged.' };
+  }
 }

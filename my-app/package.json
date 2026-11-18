@@ -45,7 +45,8 @@
     "billing:recover": "bun --env-file=.env.local scripts/recover-billing.ts",
     "test:connect": "bun --env-file=.env.local test scripts/connect.test.ts",
     "test:connect-oauth": "bun --env-file=.env.local test scripts/connect-oauth.test.ts",
-    "test:connect-webhook": "bun --env-file=.env.local test scripts/connect-webhook.test.ts"
+    "test:connect-webhook": "bun --env-file=.env.local test scripts/connect-webhook.test.ts",
+    "test:catalog": "bun --env-file=.env.local test scripts/connected-catalog.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
