@@ -61,8 +61,8 @@ full-page navigation so the browser can issue its unsaved-change warning.
 Ten tests now cover management plus save/reload, read-only guest access, foreign
 page scopes, unchanged published snapshots, invalid documents, overlapping saves,
 immutable editor operations and nested block ordering/removal. No schema migration
-is needed. Responsive canvas, drag-and-drop, undo/redo and publishing remain future
-checkpoints. Stage 15c adds the style controls below. Signed-in interactive verification is pending.
+is needed. Drag-and-drop and publishing remain future checkpoints. Stages 15c/16a add
+style controls, canvas widths and history below. Signed-in interactive verification is pending.
 
 ## Headings, buttons and appearance (15c)
 
@@ -84,3 +84,31 @@ Thirteen tests now include saving/reloading new elements and appearance, safe UR
 validation, rejected CSS fields, semantic heading rendering, escaped markup and
 non-navigating preview buttons. Signed-in visual and interactive testing remains
 pending. Image/video elements and media ownership checks remain future work.
+
+## Responsive preview and history (16a)
+
+Preview widths are Desktop 1024px, Tablet 768px and Phone 375px. The canvas keeps
+its selected width and scrolls horizontally in narrow panels; it does not silently
+shrink to fit. This previews content reflow with shared base styles. It is not an
+iframe, browser/device emulator or media-query engine, and per-device style
+overrides are not implemented. Changing preview width does not modify the draft
+or add history entries. Guests can also choose preview widths.
+
+Undo/redo keeps up to 50 document changes in memory. Edits after undo discard the
+redo branch; no-op changes do not. Removing a section is reversible with its full
+nested content and styles. Each validated text/style change counts as one step;
+keystrokes are not grouped. Reload clears history. Saving preserves history and
+marks only the submitted snapshot as saved, so undo away from it becomes dirty
+and redo back to it becomes clean. Failed/conflicting saves keep local history.
+
+Toolbar buttons work with keyboard focus. Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and Ctrl/Cmd+Y
+operate on document history when focus is inside the editor but outside text
+inputs, textareas, selects or contenteditable fields; those retain native editing
+behavior. History controls are disabled during saves and absent for guests.
+Applied button destinations update correctly after undo/redo. Unapplied destination
+input is not part of document history and must be applied before saving.
+
+Run `bun run test:editor-history` for exact restoration, save baselines, branch
+behavior, no-ops, history bounds, nested removal and preview markup checks.
+Interactive keyboard and viewport verification remains pending in a signed-in
+browser; server-rendered markup tests do not replace those checks.

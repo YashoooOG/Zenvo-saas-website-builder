@@ -415,7 +415,16 @@ links. Production build including TypeScript, lint, thirteen editor/funnel tests
 and nine HTTP authentication checks pass (22 total). The preview on port 3115
 runs this build. No migration is needed. Signed-in visual
 verification remains pending. Next is responsive preview and editor history,
-followed by drag-and-drop and media elements. Awaiting commit.
+followed by drag-and-drop and media elements. Committed as `e8ec79c`.
+
+Stage 16a adds fixed desktop/tablet/phone preview widths and bounded editor
+undo/redo. Saving preserves history and compares edits with the submitted saved
+snapshot; branch edits invalidate redo while no-ops preserve it. Native text-input
+undo remains available. Production build including TypeScript, lint, twenty
+history/funnel tests and nine HTTP authentication checks pass (29 total). The
+preview on port 3115 runs this build. No migration is needed.
+Signed-in visual/keyboard checks remain pending. Next is nested drag-and-drop.
+Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
