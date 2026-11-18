@@ -325,11 +325,14 @@ model Funnel {
   id String @id @default(cuid()) @db.VarChar(191)
   subAccountId String @db.VarChar(191)
   name String @db.VarChar(191)
+  revision Int @default(0)
+  creationKey String? @db.VarChar(36)
   subAccount SubAccount @relation(fields: [subAccountId], references: [id], onDelete: Cascade)
   pages FunnelPage[]
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
   @@unique([subAccountId, id])
+  @@unique([subAccountId, creationKey])
 }
 
 model FunnelPage {

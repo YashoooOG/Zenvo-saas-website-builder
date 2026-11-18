@@ -385,7 +385,18 @@ tests and nine HTTP authentication checks pass (16 total). The preview runs the
 new build on port 3115. No migration or Stripe write is needed. Payment
 creation and fee/refund integration remain for stage 17; provider integration and
 signed-in visual verification are still pending. Stage 15 next adds tenant-scoped
-funnels and pages with validated editor content. Awaiting commit.
+funnels and pages with validated editor content. Committed as `ac39054`.
+
+Stage 15a adds tenant-scoped funnel and draft-page management: create, rename,
+page paths, confirmed draft deletion and empty-funnel deletion. Guests are
+read-only; server mutations enforce tenant access and optimistic revisions.
+New drafts use a bounded versioned container/text document schema. The additive
+`20261118050000_funnel_management` migration is applied locally with zero schema
+drift. Production build including TypeScript, lint, seven local MySQL/content tests
+and nine HTTP authentication checks pass (16 total). The preview on port 3115
+runs this build. Signed-in visual checks remain pending.
+The next checkpoint adds draft editing/preview; drag-and-drop and publishing are
+not implemented yet. See [FUNNELS.md](FUNNELS.md). Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
