@@ -313,7 +313,7 @@ browser refresh flow remain unverified. The preview runs on port 3115. Uncertain
 checkout/customer creation-key recovery remains a separate upcoming checkpoint;
 refresh does not clear recovery keys or alter customer mappings.
 
-Stage 13f (operator checkout recovery) is implemented; awaiting commit.
+Stage 13f (operator checkout recovery) is committed as `48a0280`.
 The additive `20261118010000_billing_recovery` migration is applied locally with
 zero schema drift. Production build including TypeScript, lint, 51 billing tests
 across six suites, and the recovery CLI help smoke check passed on November 18,
@@ -326,6 +326,19 @@ Real Stripe candidate reads and repairs remain unverified because credentials st
 empty. Recovery attaches known verified objects; it does not reset uncertain writes
 when no original object can be established. Stage 14 begins Stripe Connect setup;
 provider end-to-end verification and production operational hardening remain open.
+
+Stage 14a (owner-only Payments page and Connect status validation) is implemented;
+awaiting commit. Production build including TypeScript, lint, eight Connect tests,
+eight permission regressions, and eight HTTP authentication checks passed (24 total).
+No migration is needed. Connect tests use local MySQL and injected provider results;
+they cover empty configuration, ownership, account identity/type, sanitization,
+provider failures, and mapping changes during retrieval. Fixtures were removed.
+The new Payments route redirects signed-out visitors to sign-in. Signed-in visual
+verification remains pending because the previously signed-in Zen Browser session
+is no longer available. Stripe settings stay empty, so real provider reads remain
+unverified. No OAuth flow or account-link write is implemented yet. Stage 14b adds
+Standard-account OAuth authorization and callback handling. See [CONNECT.md](CONNECT.md)
+for configuration and the exact scope of this checkpoint.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from '../generated/prisma/client';
 
 export type AgencyAccessRole = 'OWNER' | 'ADMIN' | 'MEMBER';
-export type AgencyPermission = 'read' | 'settings' | 'team' | 'billing';
+export type AgencyPermission = 'read' | 'settings' | 'team' | 'billing' | 'payments';
 export class AgencyAccessError extends Error {}
 type Database = PrismaClient | Prisma.TransactionClient;
 

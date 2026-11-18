@@ -36,11 +36,13 @@ test('owner/admin/member/client/outsider reads follow the permission matrix and 
     assert.equal(Boolean(await getAgencyAccess(db, id, agencyId, 'settings')), role !== 'MEMBER');
     assert.equal(Boolean(await getAgencyAccess(db, id, agencyId, 'team')), role === 'OWNER');
     assert.equal(Boolean(await getAgencyAccess(db, id, agencyId, 'billing')), role === 'OWNER');
+    assert.equal(Boolean(await getAgencyAccess(db, id, agencyId, 'payments')), role === 'OWNER');
     const agencies = await listAccessibleAgencies(db, id);
     assert.equal(agencies.length, 1);
     const links = workspaceLinks(agencies[0]);
     assert.equal(links.some(link => link.label === 'Team'), role === 'OWNER');
     assert.equal(links.some(link => link.label === 'Billing'), role === 'OWNER');
+    assert.equal(links.some(link => link.label === 'Payments'), role === 'OWNER');
     assert.equal(links.some(link => link.label === 'Agency settings'), role !== 'MEMBER');
   }
   for (const id of [client, outsider, `${prefix}_missing`]) {

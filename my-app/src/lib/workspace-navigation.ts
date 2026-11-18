@@ -16,6 +16,7 @@ export function workspaceLinks(agency?: WorkspaceAgency) {
     ...(agency && agency.role !== 'MEMBER' ? [{ href: `/agency/${agency.id}/settings`, label: 'Agency settings', icon: 'settings' as const }] : []),
     ...(agency?.role === 'OWNER' ? [{ href: `/agency/${agency.id}/team`, label: 'Team', icon: 'team' as const }] : []),
     ...(agency?.role === 'OWNER' ? [{ href: `/agency/${agency.id}/billing`, label: 'Billing', icon: 'billing' as const }] : []),
+    ...(agency?.role === 'OWNER' ? [{ href: `/agency/${agency.id}/payments`, label: 'Payments', icon: 'billing' as const }] : []),
     { href: '/agency/new', label: 'Create agency', icon: 'create' as const },
   ];
 }
