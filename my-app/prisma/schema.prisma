@@ -63,6 +63,7 @@ model Agency {
   subscriptions AgencySubscription[]
   checkout AgencyCheckout?
   billingRecoveries BillingRecoveryReceipt[]
+  connectAttempts ConnectOAuthAttempt[]
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
   memberships AgencyMembership[]
@@ -70,6 +71,23 @@ model Agency {
   invitations AgencyInvitation[]
   @@index([ownerId])
   @@unique([ownerId, creationKey])
+}
+
+model ConnectOAuthAttempt {
+  id String @id @default(uuid()) @db.VarChar(36)
+  agencyId String @db.VarChar(191)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  ownerId String @db.VarChar(191)
+  stateHash String @unique @db.Char(64)
+  codeHash String? @unique @db.Char(64)
+  clientId String @db.VarChar(191)
+  callbackUrl String @db.VarChar(2048)
+  status String @default("PENDING") @db.VarChar(16)
+  accountId String? @db.VarChar(191)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  expiresAt DateTime @db.DateTime(3)
+  completedAt DateTime? @db.DateTime(3)
+  @@index([agencyId, status, expiresAt])
 }
 
 model BillingRecoveryReceipt {

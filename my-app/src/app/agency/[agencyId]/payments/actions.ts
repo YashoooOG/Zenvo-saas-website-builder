@@ -1,0 +1,23 @@
+'use server';
+
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import { getDb } from '@/lib/db';
+import { requireWorkspaceUser } from '@/lib/workspace-user';
+import { AgencyAccessError } from '@/lib/agency-access';
+import { ConnectConfigurationError } from '@/lib/agency-payments';
+import { beginConnectOAuth, ConnectOAuthError } from '@/lib/connect-oauth';
+
+export async function startConnectAction(_previous: { message: string }, data: FormData) {
+  await auth.protect();
+  const user = await requireWorkspaceUser();
+  let destination: string;
+  try {
+    const agencyId = data.get('agencyId');
+    if (typeof agencyId !== 'string' || !agencyId || agencyId.length > 191) throw new AgencyAccessError('Agency unavailable.');
+    destination = await beginConnectOAuth(getDb(), user.id, agencyId, process.env);
+  } catch (error) {
+    return { message: error instanceof AgencyAccessError || error instanceof ConnectConfigurationError || error instanceof ConnectOAuthError ? error.message : 'Authorization could not be started. Please try again.' };
+  }
+  redirect(destination);
+}

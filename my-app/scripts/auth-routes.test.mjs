@@ -20,6 +20,15 @@ const request = (path, headers = {}) => browserFetch(new URL(path, base), {
   headers, redirect: 'manual', signal: AbortSignal.timeout(20000),
 });
 
+test('Connect callback rejects anonymous requests without forwarding authorization codes', async () => {
+  const response = await request('/api/stripe-connect/callback?state=fixture&code=ac_fixture');
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get('location'), null);
+  assert.match(response.headers.get('cache-control'), /no-store/);
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
+  assert.ok(!(await response.text()).includes('ac_fixture'));
+});
+
 test('Stripe webhook rejects unsigned requests without a sign-in redirect', async () => {
   const response = await browserFetch(new URL('/api/stripe-webhook', base), {
     method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(20000),

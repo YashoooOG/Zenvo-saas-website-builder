@@ -327,8 +327,8 @@ empty. Recovery attaches known verified objects; it does not reset uncertain wri
 when no original object can be established. Stage 14 begins Stripe Connect setup;
 provider end-to-end verification and production operational hardening remain open.
 
-Stage 14a (owner-only Payments page and Connect status validation) is implemented;
-awaiting commit. Production build including TypeScript, lint, eight Connect tests,
+Stage 14a (owner-only Payments page and Connect status validation) is committed
+as `975c2e8`. Production build including TypeScript, lint, eight Connect tests,
 eight permission regressions, and eight HTTP authentication checks passed (24 total).
 No migration is needed. Connect tests use local MySQL and injected provider results;
 they cover empty configuration, ownership, account identity/type, sanitization,
@@ -339,6 +339,18 @@ is no longer available. Stripe settings stay empty, so real provider reads remai
 unverified. No OAuth flow or account-link write is implemented yet. Stage 14b adds
 Standard-account OAuth authorization and callback handling. See [CONNECT.md](CONNECT.md)
 for configuration and the exact scope of this checkpoint.
+
+Stage 14b implements owner-only Standard-account OAuth authorization and callback
+handling. The additive `20261118020000_connect_oauth` migration is applied locally
+with zero schema drift. Attempts bind hashed state to the owner and configuration,
+expire after ten minutes, and persist a one-use code claim before contacting Stripe.
+Only validated Standard test accounts can be linked; tokens are discarded.
+Production build including TypeScript, lint, 28 database/permission tests, and nine
+HTTP authentication checks pass (37 total). The preview runs this build on port 3115.
+Real Stripe authorization and signed-in visual verification remain pending because
+Stripe configuration is empty and the previous browser session is unavailable.
+Connect webhook reconciliation and revocation handling are the next checkpoint.
+See [CONNECT.md](CONNECT.md) for retry behavior and configuration. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

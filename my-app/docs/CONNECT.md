@@ -1,10 +1,8 @@
 # Agency payments and Stripe Connect
 
-Stage 14a adds `/agency/[agencyId]/payments`, an owner-only page separate from
-agency subscription billing. It reads configuration and the status of an existing
-`Agency.stripeConnectAccountId`. It does not link accounts, create onboarding URLs,
-process payments, enable capabilities, or store new Stripe mappings. No migration
-is needed. Standard-account OAuth authorization and callback handling are next.
+Stage 14b adds owner-initiated Standard-account OAuth to the Payments page.
+Authorization can link a verified test account; it does not enable sales, sync
+products, change capabilities, or configure fees. Agency subscriptions remain separate.
 
 ## Configuration
 
@@ -20,11 +18,37 @@ the rest of the workspace works. To prepare later development testing, set:
   such as `http://localhost:3115`. Paths, queries, fragments and credentials are
   rejected.
 
-The planned OAuth callback is `ZENVO_APP_URL/api/stripe-connect/callback`. It is
-not implemented in this checkpoint; do not begin an authorization flow yet.
-The `ca_` prefix alone cannot prove development mode. The upcoming token exchange
-must verify test-mode access in the returned OAuth response. Use Stripe's
-development client ID and test platform key from the same platform configuration.
+Register `ZENVO_APP_URL/api/stripe-connect/callback` as the exact development
+OAuth redirect URL in Stripe. Use the development client ID and test platform key
+from the same platform. The `ca_` prefix alone cannot prove mode; the callback
+requires `livemode: false` and `read_write` in the token response before linking.
+The platform key must permit the OAuth exchange and connected-account retrieval.
+
+## Authorization lifecycle
+
+The owner starts authorization through a protected server action. Each attempt
+stores a SHA-256 hash of random 256-bit state, bound to the owner, agency, client
+ID, and callback URL for ten minutes. New starts supersede pending attempts.
+Unexpired exchanges block new starts. Declining authorization consumes the state.
+
+Before calling Stripe, a transaction claims the attempt and stores a unique hash
+of the authorization code. The SDK uses zero automatic retries. Concurrent calls,
+replayed callbacks, and reuse of a code with fresh state cannot exchange it again.
+Timeouts fail the attempt; start a new authorization rather than reload its callback.
+After a process crash, an exchanging attempt blocks new starts until expiration.
+OAuth codes are not idempotent: exchanging one twice can revoke a connection.
+
+Returned access and refresh tokens are discarded. Zenvo validates test mode,
+permission scope, account identity, and Standard account type, then rechecks active
+ownership and unique account assignment before atomically saving the account ID.
+Failures never automatically deauthorize an account. An exchange can succeed at
+Stripe while local persistence fails; a new flow requires a new authorization code.
+
+The callback requires a signed-in owner and returns a canonical Payments redirect
+without code or state. Signed-out callbacks return 401 and require a fresh start
+after sign-in. Responses disable caching and referrers. Configure deployment access
+logs to redact callback query strings before production. Attempt hashes currently
+remain until agency deletion; production retention and recovery policies are pending.
 
 ## Access and account status
 
@@ -45,8 +69,8 @@ deduplicated outstanding/pending-verification counts, and whether a restriction 
 reported. Bank data, contact details, raw requirement names and provider errors are
 not returned to the page. Charges/payout flags do not imply that Zenvo can sell
 anything yet. Account objects do not expose the subscription-style `livemode`
-field: test access is enforced by the platform key here, and OAuth will verify the
-connection's granted mode before persisting a mapping in the following checkpoint.
+field: the platform key is test-only and OAuth verifies the connection's granted
+mode before persisting a mapping.
 The current read path trusts the existing database mapping; do not manually attach
 production accounts to simulate a verified OAuth connection.
 
@@ -62,6 +86,9 @@ They cover configuration, missing mappings, active ownership, sanitization, wron
 accounts/types, provider failure, and mapping changes during retrieval.
 `bun run test:permissions` also checks owner-only navigation and access.
 The HTTP auth suite includes the new Payments route. Test fixtures are deleted.
+Run `bun run test:connect-oauth` for state, expiry, denial, replay, concurrent
+exchange, response validation, cross-agency assignment and callback tests with
+injected Stripe responses and real MySQL. Apply `bun run db:migrate` first.
 Real Connect configuration, provider reads, and OAuth remain unverified while
 Stripe settings are empty. No real Stripe account is created or modified by these
 tests.
