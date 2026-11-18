@@ -16,7 +16,7 @@ const coordinates: KeyboardCoordinateGetter = (event, { context, currentCoordina
   return { x: currentCoordinates.x + target.left + target.width / 2 - context.collisionRect.left - context.collisionRect.width / 2,
     y: currentCoordinates.y + target.top + target.height / 2 - context.collisionRect.top - context.collisionRect.height / 2 };
 };
-const label = (node: EditorNode) => node.type === 'container' ? 'Section' : `${node.type}: ${node.text.slice(0, 40) || 'Empty'}`;
+const label = (node: EditorNode) => node.type === 'container' ? 'Section' : node.type === 'image' ? `Image: ${node.alt.slice(0, 40) || 'Decorative'}` : `${node.type}: ${node.text.slice(0, 40) || 'Empty'}`;
 function Slot({ data, disabled }: { data: SlotData; disabled: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: `slot:${data.parentId}:${data.beforeId ?? 'end'}`, data, disabled });
   return <div ref={setNodeRef} style={{ minHeight: 24, padding: 4, border: isOver ? '2px solid currentColor' : '1px dashed var(--border)', opacity: disabled ? 0.35 : 1 }}><small>{data.label}</small></div>;

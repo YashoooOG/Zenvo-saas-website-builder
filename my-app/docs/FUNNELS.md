@@ -142,3 +142,32 @@ nested sections. Pointer/touch/keyboard interaction in a signed-in browser remai
 unverified; these tests exercise operations rather than simulate real drag gestures.
 
 Reference: [dnd-kit core keyboard sensor](https://dndkit.com/legacy/api-documentation/sensors/keyboard/).
+
+## Workspace image elements (16c)
+
+Add image inserts a reference to an image from this client workspace. Its control
+selects the library file and accepts up to 500 characters of alternative text;
+empty alternative text is appropriate for decorative images. Images support the
+existing appearance, reordering, nested movement and history operations. Upload
+images in the existing media library, save current changes, then reload the editor
+to refresh the available files. Video and arbitrary external embeds are not added.
+
+Documents store mediaId and alt only, never an image URL. The authenticated draft
+loader resolves at most 500 workspace-owned WebP records (the library already
+limits uploads to 500). It excludes non-HTTPS or credential-bearing URLs and
+rechecks access before returning. Preview receives only that workspace's resolved
+files, uses responsive intrinsic image dimensions and sends no referrer.
+
+Saving validates all referenced media IDs belong to the current workspace and
+have the supported image MIME type. The check and commit hold the same workspace
+write lock used by media retirement. Foreign, deleted or unsupported references
+fail without changing the draft. Deletion after saving is permitted in this draft
+stage: reload shows an unavailable-image placeholder, and the next save requires
+replacement or removal. An already-open tab can retain its loaded URL until
+refresh; uploads are public assets, so this is not private-file access control.
+Published-asset retention must be addressed before public page publishing.
+
+Tests cover owned-image save/reload, foreign-reference rejection, missing-image
+rendering and save rejection, removal recovery, discarded raw URL fields and alt
+limits. Existing media upload/retirement and history regressions also pass.
+No migration is required. Signed-in file selection and visual checks remain pending.

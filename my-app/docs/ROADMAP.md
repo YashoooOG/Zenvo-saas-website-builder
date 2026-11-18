@@ -433,7 +433,16 @@ build including TypeScript, lint, 24 editor/funnel tests and nine HTTP authentic
 checks pass (33 total). The preview on port 3115 runs this build. No migration is
 needed. Signed-in gesture/visual checks
 remain pending. Next is media elements with workspace ownership validation.
-Awaiting commit.
+Committed as `a886fc1`.
+
+Stage 16c adds workspace-owned image blocks, alternative text, media selection
+and resolved image previews. Draft saves reject foreign/deleted references under
+workspace locks; reload handles deleted images with a placeholder. Production
+build including TypeScript, lint, 34 editor/funnel/media tests and nine HTTP
+authentication checks pass (43 total). The preview on port 3115 runs this build.
+No migration is needed. Signed-in visual selection
+checks remain pending. Next is public publishing with draft separation and media
+retention safeguards. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

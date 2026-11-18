@@ -3,7 +3,7 @@ import type { PrismaClient } from '../generated/prisma/client';
 import { AgencyAccessError } from './agency-access';
 import { getSubAccountAccess, lockSubAccountWrite } from './subaccounts';
 import { FunnelConflict } from './funnels';
-import { validateEditorContent } from './editor-content';
+import { validateEditorContent, editorMediaIds } from './editor-content';
 
 const id = z.string().min(1).max(191);
 export async function getFunnelDraft(db: PrismaClient, actor: string, subAccountId: string, funnelId: string, pageId: string) {
@@ -11,7 +11,10 @@ export async function getFunnelDraft(db: PrismaClient, actor: string, subAccount
   if (!access) return null;
   const page = await db.funnelPage.findFirst({ where: { id: pageId, subAccountId, funnelId }, include: { funnel: { select: { name: true, revision: true } } } });
   if (!page) return null;
-  return { access, page: { id: page.id, name: page.name, path: page.path, funnelName: page.funnel.name, revision: page.funnel.revision, content: validateEditorContent(page.draftContent) } };
+  const media = await db.media.findMany({ where: { subAccountId, mimeType: 'image/webp' }, select: { id: true, name: true, url: true }, take: 500, orderBy: [{ createdAt: 'desc' }, { id: 'asc' }] });
+  const safeMedia = media.filter(item => { try { const url = new URL(item.url); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; } });
+  if (!await getSubAccountAccess(db, actor, subAccountId)) return null;
+  return { access, media: safeMedia, page: { id: page.id, name: page.name, path: page.path, funnelName: page.funnel.name, revision: page.funnel.revision, content: validateEditorContent(page.draftContent) } };
 }
 export async function saveFunnelDraft(db: PrismaClient, actor: string, input: unknown) {
   const data = z.object({ subAccountId: id, funnelId: id, pageId: id, revision: z.number().int().nonnegative(), content: z.unknown() }).strict().parse(input);
@@ -21,6 +24,10 @@ export async function saveFunnelDraft(db: PrismaClient, actor: string, input: un
     const page = await tx.funnelPage.findFirst({ where: { id: data.pageId, subAccountId: data.subAccountId, funnelId: data.funnelId }, include: { funnel: true } });
     if (!page) throw new AgencyAccessError('Page unavailable.');
     if (page.funnel.revision !== data.revision) throw new FunnelConflict('This funnel changed in another tab. Your edits are still here; copy any text you need before reloading.');
+    const mediaIds = editorMediaIds(content);
+    // Media retirement takes the same workspace lock, so a deletion cannot
+    // race this ownership check and the draft commit.
+    if (mediaIds.length && await tx.media.count({ where: { id: { in: mediaIds }, subAccountId: data.subAccountId, mimeType: 'image/webp' } }) !== mediaIds.length) throw new FunnelConflict('An image is unavailable in this workspace. Replace or remove it before saving.');
     // Draft editing never touches the published snapshot or publication timestamp.
     await tx.funnelPage.update({ where: { id: page.id }, data: { draftContent: content } });
     const updated = await tx.funnel.update({ where: { id: data.funnelId }, data: { revision: { increment: 1 } } });

@@ -179,3 +179,32 @@ test('preview renders semantic headings, escapes markup and does not create navi
   assert.match(html, /<h2/); assert.match(html, /font-size:32px/); assert.match(html, /&lt;script&gt;/);
   assert.ok(!html.includes('<script>')); assert.ok(!html.includes('href=')); assert.match(html, /<button type="button"/);
 });
+
+test('image drafts accept only workspace-owned media and never expose foreign URLs', async () => {
+  const funnel = await create();
+  await mutateFunnel(db, owner, { ...await context(funnel.id), operation: 'create-page', name: 'Images', path: '/images' });
+  const page = await db.funnelPage.findFirstOrThrow({ where: { funnelId: funnel.id } });
+  const media = await db.media.create({ data: { subAccountId, storageKey: randomUUID(), name: 'Our image', url: 'https://example.com/own.webp', mimeType: 'image/webp', sizeBytes: BigInt(100) } });
+  const foreign = await db.media.create({ data: { subAccountId: siblingId, storageKey: randomUUID(), name: 'Foreign image', url: 'https://example.com/foreign.webp', mimeType: 'image/webp', sizeBytes: BigInt(100) } });
+  const imageDoc = (mediaId: string) => applyEditorOperation(emptyEditorContent(), { type: 'add', parentId: 'root', node: { id: 'image', type: 'image', mediaId, alt: 'Agency team' } });
+  await assert.rejects(saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content: imageDoc(foreign.id) }), /unavailable/);
+  await saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content: imageDoc(media.id) });
+  const loaded = (await getFunnelDraft(db, guest, subAccountId, funnel.id, page.id))!;
+  assert.ok(loaded.media.some(item => item.id === media.id)); assert.ok(!JSON.stringify(loaded).includes('foreign.webp'));
+  assert.deepEqual(loaded.page.content, imageDoc(media.id));
+  const html = renderToStaticMarkup(createElement(DraftPreview, { node: loaded.page.content.root, media: loaded.media }));
+  assert.match(html, /own.webp/); assert.match(html, /alt="Agency team"/);
+  await db.media.delete({ where: { id: media.id } });
+  const missing = (await getFunnelDraft(db, owner, subAccountId, funnel.id, page.id))!;
+  assert.match(renderToStaticMarkup(createElement(DraftPreview, { node: missing.page.content.root, media: missing.media })), /Image unavailable/);
+  await assert.rejects(saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content: missing.page.content }), /unavailable/);
+  await saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content: emptyEditorContent() });
+});
+
+test('image content rejects arbitrary source URLs and retains media identity through history operations', () => {
+  assert.throws(() => validateEditorContent({ version: 1, root: { id: 'root', type: 'container', children: [{ id: 'image', type: 'image', mediaId: 'owned', alt: '', src: 'https://example.com/untrusted' }] } }));
+  const doc = applyEditorOperation(emptyEditorContent(), { type: 'add', parentId: 'root', node: { id: 'image', type: 'image', mediaId: 'owned', alt: '' } });
+  const updated = applyEditorOperation(doc, { type: 'image', id: 'image', mediaId: 'replacement', alt: 'Updated description' });
+  assert.ok(JSON.stringify(updated).includes('replacement')); assert.ok(!JSON.stringify(doc).includes('replacement'));
+  assert.throws(() => applyEditorOperation(doc, { type: 'image', id: 'image', mediaId: 'owned', alt: 'x'.repeat(501) }));
+});

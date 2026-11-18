@@ -14,7 +14,7 @@ export function safeEditorHref(value: string) {
 }
 export type EditorNode = { id: string; style?: EditorStyle } & (
   { type: 'text'; text: string } | { type: 'heading'; text: string; level: 1 | 2 | 3 } |
-  { type: 'button'; text: string; href: string } | { type: 'container'; children: EditorNode[] }
+  { type: 'button'; text: string; href: string } | { type: 'image'; mediaId: string; alt: string } | { type: 'container'; children: EditorNode[] }
 );
 const nodeId = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
 const common = { id: nodeId, style: editorStyleSchema.optional() };
@@ -22,6 +22,7 @@ const node: z.ZodType<EditorNode> = z.lazy(() => z.discriminatedUnion('type', [
   z.object({ ...common, type: z.literal('text'), text: z.string().max(10000) }).strict(),
   z.object({ ...common, type: z.literal('heading'), text: z.string().max(200), level: z.union([z.literal(1), z.literal(2), z.literal(3)]) }).strict(),
   z.object({ ...common, type: z.literal('button'), text: z.string().max(200), href: z.string().refine(safeEditorHref, 'Use HTTPS, a root-relative path, or an anchor.') }).strict(),
+  z.object({ ...common, type: z.literal('image'), mediaId: z.string().min(1).max(191), alt: z.string().max(500) }).strict(),
   z.object({ ...common, type: z.literal('container'), children: z.array(node).max(100) }).strict(),
 ]));
 
@@ -50,3 +51,10 @@ export function validateEditorContent(input: unknown) {
   return document;
 }
 export const emptyEditorContent = () => validateEditorContent({ version: 1, root: { id: 'root', type: 'container', children: [] } });
+
+export type EditorMedia = { id: string; name: string; url: string };
+export function editorMediaIds(content: ReturnType<typeof validateEditorContent>) {
+  const ids = new Set<string>(); const stack = [content.root];
+  while (stack.length) { const item = stack.pop()!; if (item.type === 'image') ids.add(item.mediaId); if (item.type === 'container') stack.push(...item.children); }
+  return [...ids];
+}

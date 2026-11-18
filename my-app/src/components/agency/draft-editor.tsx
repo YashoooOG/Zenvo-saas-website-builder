@@ -3,19 +3,21 @@ import { useEffect, useState, useTransition } from 'react';
 import { saveDraftAction } from '@/app/subaccount/draft-actions';
 import { type EditorDocument, type EditorOperation } from '@/lib/editor-operations';
 import { createEditorHistory, editorHasChanges, recordEditorChange, undoEditor, redoEditor, markEditorSaved } from '@/lib/editor-history';
-import type { EditorNode } from '@/lib/editor-content';
+import type { EditorNode, EditorMedia } from '@/lib/editor-content';
 import { ResponsiveDraftPreview } from './responsive-draft-preview';
 import { EditorStructure } from './editor-structure';
 import { EditorStyleControls, ButtonDestination } from './editor-style-controls';
 
-function Controls({ node, root = false, disabled, change }: { node: EditorNode; root?: boolean; disabled: boolean; change: (operation: EditorOperation) => void }) {
-  return <fieldset disabled={disabled} className="launchpad-section"><legend>{root ? 'Page content' : node.type === 'container' ? 'Section' : node.type === 'heading' ? 'Heading' : node.type === 'button' ? 'Button' : 'Text block'}</legend>
-    {node.type !== 'container' ? <label className="agency-field">Text<textarea value={node.text} onChange={event => change({ type: 'text', id: node.id, text: event.target.value })} maxLength={node.type === 'text' ? 10000 : 200} rows={node.type === 'text' ? 4 : 2} /></label> : <>
-      {node.children.map(child => <Controls key={child.id} node={child} disabled={disabled} change={change} />)}
+function Controls({ node, root = false, disabled, change, media }: { node: EditorNode; media: EditorMedia[]; root?: boolean; disabled: boolean; change: (operation: EditorOperation) => void }) {
+  return <fieldset disabled={disabled} className="launchpad-section"><legend>{root ? 'Page content' : node.type === 'container' ? 'Section' : node.type === 'heading' ? 'Heading' : node.type === 'button' ? 'Button' : node.type === 'image' ? 'Image' : 'Text block'}</legend>
+    {node.type === 'image' ? <div className="agency-field"><label>Workspace image<select value={node.mediaId} onChange={event => change({ type: 'image', id: node.id, mediaId: event.target.value, alt: node.alt })}>{!media.some(item => item.id === node.mediaId) && <option value={node.mediaId}>Image unavailable</option>}{media.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>Alternative text<input value={node.alt} maxLength={500} onChange={event => change({ type: 'image', id: node.id, mediaId: node.mediaId, alt: event.target.value })} /></label><p>Describe the image, or leave blank if it is decorative.</p></div> : node.type !== 'container' ? <label className="agency-field">Text<textarea value={node.text} onChange={event => change({ type: 'text', id: node.id, text: event.target.value })} maxLength={node.type === 'text' ? 10000 : 200} rows={node.type === 'text' ? 4 : 2} /></label> : <>
+      {node.children.map(child => <Controls key={child.id} media={media} node={child} disabled={disabled} change={change} />)}
       <button type="button" className="text-action" onClick={() => change({ type: 'add', parentId: node.id, node: { id: crypto.randomUUID(), type: 'text', text: 'Write your text here.' } })}>Add text</button>{' '}
       <button type="button" className="text-action" onClick={() => change({ type: 'add', parentId: node.id, node: { id: crypto.randomUUID(), type: 'container', children: [] } })}>Add section</button>{' '}
       <button type="button" className="text-action" onClick={() => change({ type: 'add', parentId: node.id, node: { id: crypto.randomUUID(), type: 'heading', text: 'Your heading', level: 2 } })}>Add heading</button>{' '}
-      <button type="button" className="text-action" onClick={() => change({ type: 'add', parentId: node.id, node: { id: crypto.randomUUID(), type: 'button', text: 'Learn more', href: '/' } })}>Add button</button>
+      <button type="button" className="text-action" onClick={() => change({ type: 'add', parentId: node.id, node: { id: crypto.randomUUID(), type: 'button', text: 'Learn more', href: '/' } })}>Add button</button>{' '}
+      <button type="button" className="text-action" disabled={!media.length} onClick={() => { if (media[0]) change({ type: 'add', parentId: node.id, node: { id: crypto.randomUUID(), type: 'image', mediaId: media[0].id, alt: '' } }); }}>Add image</button>
+      {!media.length && <p>Upload an image to this workspace’s media library, then reload the saved draft to use it.</p>}
     </>}
     {node.type === 'heading' && <label>Heading level<select value={node.level} onChange={event => change({ type: 'level', id: node.id, level: Number(event.target.value) as 1 | 2 | 3 })}><option value={1}>Heading 1</option><option value={2}>Heading 2</option><option value={3}>Heading 3</option></select></label>}
     {node.type === 'button' && <ButtonDestination key={`${node.id}-${node.href}`} node={node} change={change} />}
@@ -23,7 +25,7 @@ function Controls({ node, root = false, disabled, change }: { node: EditorNode; 
     {!root && <div className="agency-overview-links"><button type="button" className="text-action" onClick={() => change({ type: 'move', id: node.id, direction: -1 })}>Move up</button><button type="button" className="text-action" onClick={() => change({ type: 'move', id: node.id, direction: 1 })}>Move down</button><button type="button" className="text-action" onClick={() => { if (window.confirm('Remove this block and any content inside it?')) change({ type: 'remove', id: node.id }); }}>Remove block</button></div>}
   </fieldset>;
 }
-export function DraftEditor({ subAccountId, funnelId, pageId, initial, initialRevision, editable }: { subAccountId: string; funnelId: string; pageId: string; initial: EditorDocument; initialRevision: number; editable: boolean }) {
+export function DraftEditor({ subAccountId, funnelId, pageId, initial, initialRevision, editable, media }: { subAccountId: string; funnelId: string; pageId: string; initial: EditorDocument; initialRevision: number; editable: boolean; media: EditorMedia[] }) {
   const [history, setHistory] = useState(() => createEditorHistory(initial)); const [revision, setRevision] = useState(initialRevision);
   const document = history.present; const dirty = editorHasChanges(history);
   const [message, setMessage] = useState(''); const [pending, startTransition] = useTransition();
@@ -59,7 +61,7 @@ export function DraftEditor({ subAccountId, funnelId, pageId, initial, initialRe
     <button className="text-action" disabled={pending} onClick={() => { if (!dirty || window.confirm('Discard unsaved edits and reload the saved draft?')) window.location.reload(); }}>Reload saved draft</button>
     <span role="status">{message || (dirty ? 'Unsaved changes' : editable ? 'Saved draft' : 'Read-only preview')}</span>
   </div><div className="agency-settings-grid">
-    {editable && <section aria-label="Draft controls"><EditorStructure root={document.root} disabled={pending} change={change} /><Controls node={document.root} root disabled={pending} change={change} /></section>}
-    <ResponsiveDraftPreview node={document.root} />
+    {editable && <section aria-label="Draft controls"><EditorStructure root={document.root} disabled={pending} change={change} /><Controls media={media} node={document.root} root disabled={pending} change={change} /></section>}
+    <ResponsiveDraftPreview node={document.root} media={media} />
   </div></div>;
 }

@@ -1,6 +1,6 @@
 import { validateEditorContent, type EditorNode, type EditorStyle } from './editor-content';
 export type EditorDocument = ReturnType<typeof validateEditorContent>;
-export type EditorOperation = { type: 'place'; id: string; parentId: string; beforeId: string | null } | { type: 'style'; id: string; style: EditorStyle } | { type: 'href'; id: string; href: string } | { type: 'level'; id: string; level: 1 | 2 | 3 } | { type: 'text'; id: string; text: string } | { type: 'add'; parentId: string; node: EditorNode } | { type: 'remove'; id: string } | { type: 'move'; id: string; direction: -1 | 1 };
+export type EditorOperation = { type: 'image'; id: string; mediaId: string; alt: string } | { type: 'place'; id: string; parentId: string; beforeId: string | null } | { type: 'style'; id: string; style: EditorStyle } | { type: 'href'; id: string; href: string } | { type: 'level'; id: string; level: 1 | 2 | 3 } | { type: 'text'; id: string; text: string } | { type: 'add'; parentId: string; node: EditorNode } | { type: 'remove'; id: string } | { type: 'move'; id: string; direction: -1 | 1 };
 
 export function applyEditorOperation(document: EditorDocument, operation: EditorOperation): EditorDocument {
   const next = structuredClone(document); let found = false;
@@ -25,7 +25,8 @@ export function applyEditorOperation(document: EditorDocument, operation: Editor
     return validateEditorContent(next);
   }
   function visit(node: EditorNode) {
-    if (operation.type === 'text' && node.id === operation.id && node.type !== 'container') { node.text = operation.text; found = true; }
+    if (operation.type === 'text' && node.id === operation.id && node.type !== 'container' && node.type !== 'image') { node.text = operation.text; found = true; }
+    if (operation.type === 'image' && node.id === operation.id && node.type === 'image') { node.mediaId = operation.mediaId; node.alt = operation.alt; found = true; }
     if (operation.type === 'style' && node.id === operation.id) { node.style = operation.style; found = true; }
     if (operation.type === 'href' && node.id === operation.id && node.type === 'button') { node.href = operation.href; found = true; }
     if (operation.type === 'level' && node.id === operation.id && node.type === 'heading') { node.level = operation.level; found = true; }
