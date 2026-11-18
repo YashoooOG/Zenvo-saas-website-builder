@@ -350,7 +350,19 @@ HTTP authentication checks pass (37 total). The preview runs this build on port 
 Real Stripe authorization and signed-in visual verification remain pending because
 Stripe configuration is empty and the previous browser session is unavailable.
 Connect webhook reconciliation and revocation handling are the next checkpoint.
-See [CONNECT.md](CONNECT.md) for retry behavior and configuration. Awaiting commit.
+See [CONNECT.md](CONNECT.md) for retry behavior and configuration. Committed as `d2c7048`.
+
+Stage 14c adds a dedicated signed Connect webhook endpoint, atomic delivery
+receipts, sanitized current-account synchronization, and revocation handling.
+Account-level locks also protect OAuth completion from revocations received while
+an exchange is in flight. Older revocations preserve newer authorizations;
+same-second ambiguity conservatively requires a fresh connection. The additive
+`20261118030000_connect_webhooks` migration is applied locally with zero schema
+drift. Production build including TypeScript, lint, 37 database/permission tests,
+and nine HTTP authentication checks pass (46 total). The preview on port 3115
+runs this build. Stripe settings remain empty, so actual
+provider event delivery remains unverified. No new browser screen is introduced.
+Product synchronization is the next checkpoint. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

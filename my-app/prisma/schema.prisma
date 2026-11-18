@@ -73,6 +73,22 @@ model Agency {
   @@unique([ownerId, creationKey])
 }
 
+model ConnectAccountSync {
+  accountId String @id @db.VarChar(191)
+  revokedAt DateTime? @db.DateTime(3)
+  linkedStartedAt DateTime? @db.DateTime(3)
+  status Json?
+  syncedAt DateTime? @db.DateTime(3)
+}
+
+model ConnectWebhookReceipt {
+  id String @id @db.VarChar(191)
+  accountId String @db.VarChar(191)
+  type String @db.VarChar(64)
+  receivedAt DateTime @default(now()) @db.DateTime(3)
+  @@index([accountId])
+}
+
 model ConnectOAuthAttempt {
   id String @id @default(uuid()) @db.VarChar(36)
   agencyId String @db.VarChar(191)

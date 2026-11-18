@@ -9,18 +9,20 @@ import { handleConnectCallback } from '../src/lib/connect-callback';
 const db = createDatabaseClient(process.env.DATABASE_URL);
 const tag = randomUUID().replaceAll('-', '');
 const owner = `oauth_${tag}`, admin = `${owner}_admin`, other = `${owner}_other`;
+const accountIds: string[] = [];
 const env = { STRIPE_SECRET_KEY: 'sk_test_fixture', STRIPE_CONNECT_CLIENT_ID: 'ca_fixture', ZENVO_APP_URL: 'http://localhost:3115' };
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 const code = () => `ac_${randomUUID().replaceAll('-', '')}`;
 before(async () => { await db.user.createMany({ data: [owner, admin, other].map(id => ({ id })) }); });
 after(async () => {
   try { await db.agency.deleteMany({ where: { ownerId: { in: [owner, other] } } }); await db.user.deleteMany({ where: { id: { in: [owner, admin, other] } } }); }
-  finally { await db.$disconnect(); }
+  finally { await db.connectAccountSync.deleteMany({ where: { accountId: { in: accountIds } } }); await db.$disconnect(); }
 });
 const agency = async (ownerId = owner) => (await db.agency.create({ data: { name: 'OAuth fixture', ownerId } })).id;
 async function begin(agencyId: string) { return new URL(await beginConnectOAuth(db, owner, agencyId, env)).searchParams.get('state')!; }
 function provider() {
   const accountId = `acct_${randomUUID().replaceAll('-', '')}`;
+  accountIds.push(accountId);
   const calls: string[] = [];
   const token = { stripe_user_id: accountId, livemode: false, scope: 'read_write', token_type: 'bearer', access_token: 'sensitive_access_token', refresh_token: 'sensitive_refresh_token' };
   const account = { id: accountId, type: 'standard', charges_enabled: false, payouts_enabled: false, details_submitted: false, requirements: { currently_due: [], past_due: [], pending_verification: [], disabled_reason: null } };

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { PrismaClient } from '../generated/prisma/client';
 import { lockAgencyAccess } from './agency-access';
 import { connectAccountStatus, connectConfiguration } from './agency-payments';
+import { lockConnectAccount } from './connect-events';
 
 export class ConnectOAuthError extends Error {}
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -67,11 +68,14 @@ export async function completeConnectOAuth(db: PrismaClient, actorId: string, ca
     const token = tokenSchema.parse(await provider.exchange(callback.code!));
     connectAccountStatus(await provider.account(token.stripe_user_id), token.stripe_user_id);
     await db.$transaction(async tx => {
+      const ledger = await lockConnectAccount(tx, token.stripe_user_id);
       const { agency } = await lockAgencyAccess(tx, actorId, found.agencyId, 'payments');
       const attempt = await tx.connectOAuthAttempt.findUniqueOrThrow({ where: { id: found.id } });
+      if (ledger.revokedAt && Math.floor(attempt.createdAt.getTime() / 1000) <= ledger.revokedAt.getTime() / 1000) throw invalid();
       if (attempt.status !== 'EXCHANGING' || attempt.expiresAt <= new Date() || agency.stripeConnectAccountId) throw invalid();
       if (await tx.agency.findUnique({ where: { stripeConnectAccountId: token.stripe_user_id } })) throw invalid();
       await tx.agency.update({ where: { id: found.agencyId }, data: { stripeConnectAccountId: token.stripe_user_id } });
+      await tx.connectAccountSync.update({ where: { accountId: token.stripe_user_id }, data: { linkedStartedAt: attempt.createdAt } });
       await tx.connectOAuthAttempt.update({ where: { id: found.id }, data: { status: 'SUCCEEDED', accountId: token.stripe_user_id, completedAt: new Date() } });
     }, { isolationLevel: 'ReadCommitted' });
     return { agencyId: found.agencyId, outcome: 'linked' as const };

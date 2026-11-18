@@ -30,12 +30,14 @@ test('Connect callback rejects anonymous requests without forwarding authorizati
 });
 
 test('Stripe webhook rejects unsigned requests without a sign-in redirect', async () => {
-  const response = await browserFetch(new URL('/api/stripe-webhook', base), {
+  for (const path of ['/api/stripe-webhook', '/api/stripe-connect/webhook']) {
+  const response = await browserFetch(new URL(path, base), {
     method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(20000),
   });
   assert.ok([400, 503].includes(response.status));
   assert.match(response.headers.get('cache-control'), /no-store/);
   assert.equal(response.headers.get('location'), null);
+  }
 });
 
 test('public home and authentication pages remain accessible', async () => {

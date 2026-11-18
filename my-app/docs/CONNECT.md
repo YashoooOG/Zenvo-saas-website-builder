@@ -1,6 +1,7 @@
 # Agency payments and Stripe Connect
 
 Stage 14b adds owner-initiated Standard-account OAuth to the Payments page.
+Stage 14c adds signed Connect webhooks and revocation handling.
 Authorization can link a verified test account; it does not enable sales, sync
 products, change capabilities, or configure fees. Agency subscriptions remain separate.
 
@@ -79,6 +80,42 @@ checkpoint does not create Express/Custom accounts or choose account countries,
 fee liability, or payout settings. Those business details are not inferred from
 the developer's location. Connect remains separate from Zenvo's SaaS subscriptions.
 
+## Connected-account webhooks
+
+Create a **test** connected-account event endpoint at
+`ZENVO_APP_URL/api/stripe-connect/webhook`, subscribed to `account.updated` and
+`account.application.deauthorized`. Set its signing secret as
+`STRIPE_CONNECT_WEBHOOK_SECRET`. Keep this separate from the platform subscription
+endpoint and `STRIPE_WEBHOOK_SECRET`. No billing price is required. Empty settings
+leave this endpoint unavailable (503) and the rest of the workspace usable.
+
+The handler verifies the raw body and Stripe signature, with the SDK's timestamp
+check and a 1 MiB body limit, before database access. It ignores live-mode and
+unrelated events. Account updates must match the envelope account; revocations
+must identify this platform's configured OAuth application. The signed endpoint
+does not require a Clerk session. Failures return 503 for provider retry; successful
+deliveries have an atomic receipt so duplicates cannot repeat effects.
+
+Account updates fetch current provider state under an account lock instead of
+trusting an old event snapshot. Only sanitized flags/counts and the synchronization
+time are retained. This internal snapshot is not authorization to sell and is not
+a fallback for a failed live status read. The Payments page still verifies status
+with Stripe. Unknown account updates never attach an agency.
+
+Revocation clears only the matching agency's account mapping, without calling
+Stripe or changing its account. The owner can authorize again from Payments.
+Independent account tombstones also record revocations received before OAuth
+completion. OAuth completion and webhook processing share account-first locking,
+so an in-flight authorization cannot restore a revoked link. A revocation older
+than the current authorization's start does not disconnect the newer link. Stripe
+uses second-level event timestamps: ambiguous same-second events conservatively
+require a fresh authorization. Keep deployment clocks synchronized.
+
+Receipts and revocation tombstones currently have no automatic deletion. Do not
+purge them while callbacks or event retries can still arrive; define retention and
+operational recovery policies before production. There is no live-mode handling,
+manual disconnect button, product synchronization, or sales processing yet.
+
 ## Verification
 
 Run `bun run test:connect` for local MySQL tests with injected account responses.
@@ -89,9 +126,14 @@ The HTTP auth suite includes the new Payments route. Test fixtures are deleted.
 Run `bun run test:connect-oauth` for state, expiry, denial, replay, concurrent
 exchange, response validation, cross-agency assignment and callback tests with
 injected Stripe responses and real MySQL. Apply `bun run db:migrate` first.
-Real Connect configuration, provider reads, and OAuth remain unverified while
+Run `bun run test:connect-webhook` for signature rejection, replay/concurrency,
+current-state refresh, provider retry, tenant isolation, delayed revocation, and
+revocation during OAuth completion. These tests use signed fixtures and real local
+MySQL; they do not contact Stripe.
+Real Connect configuration, provider reads, OAuth and event delivery remain unverified while
 Stripe settings are empty. No real Stripe account is created or modified by these
 tests.
 
 References: [OAuth for Standard accounts](https://docs.stripe.com/connect/oauth-reference),
-[retrieve an account](https://docs.stripe.com/api/accounts/retrieve).
+[retrieve an account](https://docs.stripe.com/api/accounts/retrieve),
+[Connect webhooks](https://docs.stripe.com/connect/webhooks).
