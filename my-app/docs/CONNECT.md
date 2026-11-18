@@ -367,3 +367,50 @@ a redirect or browser claim.
 References: [Create a Checkout Session](https://docs.stripe.com/api/checkout/sessions/create),
 [Stripe idempotency](https://docs.stripe.com/api/idempotent_requests), and
 [direct charges](https://docs.stripe.com/connect/direct-charges).
+
+## Session recovery and expiration (17f)
+
+`recoverFunnelSession` is an internal agency-owner operation with two explicit
+modes: `inspect` retrieves verified session status, while `cancel` also expires an
+open session. It accepts only an attempt ID and operation. It never creates a
+session, returns a checkout URL, grants access or treats completion as payment.
+The current agency owner may recover historical attempts even after a page is
+removed, a workspace is disabled, the local attempt expires or the connected
+account mapping is removed. Requests still target the historical account stored
+in the attempt; revoked Stripe access may require manual provider intervention.
+
+A committed `review` marker blocks `startFunnelSession` before recovery provider
+work begins. Known session IDs are retrieved directly. When a creation response
+was lost, recovery lists at most 100 sessions on the historical account, within
+the local attempt's creation/retry interval plus a 60-second timing margin.
+A unique candidate matching attempt metadata or client reference is then retrieved
+with expanded line items and subjected to the same full identity/price/amount
+checks as session creation. Either matching field only nominates a candidate;
+both references, agency metadata and the expected amounts must validate before
+attaching or cancelling it.
+
+Missing matches, duplicate matches or `has_more` leave the attempt under review.
+A bounded list is not proof that a session was never created. Recovery never
+replays an old create request or rotates its idempotency key. Inspecting a verified
+open session restores its status, but starting it again still requires a live
+publication, current connection/owner access and an unexpired local attempt.
+
+Cancellation retrieves the session after the expiration call, including when the
+call fails or loses its response. This handles a completed payment racing
+cancellation: `complete` is recorded as a session state, not a paid order. If the
+session remains open, cancellation leaves `review` in place. Provider/validation
+failures preserve the stop marker and hide upstream details. Concurrent recovery
+uses the existing account-then-user/agency lock order; transactions are bounded at
+60 seconds, covering at most one list, two retrieves and one expiration call with
+the adapter's existing 10-second per-call limit. This retains the bounded lock
+contention tradeoff documented in 17e.
+
+No migration is needed. Run `bun run test:funnel-recovery`. Tests use injected
+provider responses and local MySQL for discovery, ambiguity, authorization,
+expired/disconnected attempts, response loss, payment/cancellation races, unsafe
+provider data and concurrent cancellation. Recovery is not yet exposed through a
+public route, owner UI, scheduled worker or CLI. Live Stripe verification and
+Connect payment-event reconciliation remain pending before public checkout.
+
+References: [list Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/list)
+and [expire a Checkout Session](https://docs.stripe.com/api/checkout/sessions/expire).

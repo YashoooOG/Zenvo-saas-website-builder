@@ -42,6 +42,7 @@ async function lockEligibleAttempt(tx: Prisma.TransactionClient, actorId: string
     throw new FunnelSessionError('The page, access or Stripe connection changed. Checkout is unavailable.');
   }
   const current = await tx.funnelCheckoutAttempt.findUniqueOrThrow({ where: { id: attemptId } });
+  if (current.sessionStatus === 'review') throw new FunnelSessionError('This attempt needs session recovery before checkout can resume.');
   if (current.expiresAt.getTime() <= Date.now()) throw new FunnelSessionError('The attempt expired. Any pending session needs reconciliation before retrying.');
   return current;
 }
@@ -55,14 +56,14 @@ const sessionSchema = z.object({
   total_details: z.object({ amount_discount: z.literal(0), amount_shipping: z.literal(0), amount_tax: z.literal(0) }),
   line_items: z.object({ has_more: z.literal(false), data: z.array(z.object({ quantity: z.literal(1), price: z.object({ id: z.string() }) })).length(1) }),
 });
-function verifySession(raw: unknown, attempt: FunnelCheckoutAttempt, parameters: Stripe.Checkout.SessionCreateParams) {
+export function verifyFunnelSession(raw: unknown, attempt: FunnelCheckoutAttempt, parameters: Stripe.Checkout.SessionCreateParams, redirect = true) {
   const session = sessionSchema.parse(raw);
   if ((attempt.sessionId && session.id !== attempt.sessionId) || session.client_reference_id !== attempt.id ||
     session.metadata.zenvoAttemptId !== attempt.id || session.metadata.zenvoAgencyId !== attempt.agencyId ||
     session.currency !== attempt.currency || session.amount_total !== attempt.amount || session.amount_subtotal !== attempt.amount ||
     session.line_items.data[0].price.id !== attempt.priceId || session.expires_at !== parameters.expires_at) throw new FunnelSessionError('Checkout could not be verified.');
   let url: string | null = null;
-  if (session.status === 'open') {
+  if (session.status === 'open' && redirect) {
     if (!session.url || session.expires_at <= Date.now() / 1000) throw new FunnelSessionError('Checkout could not be verified.');
     const parsed = new URL(session.url);
     if (parsed.protocol !== 'https:' || parsed.hostname !== 'checkout.stripe.com' || parsed.port || parsed.username || parsed.password) throw new FunnelSessionError('Checkout could not be verified.');
@@ -104,7 +105,7 @@ export async function startFunnelSession(db: PrismaClient, actorId: string, inpu
       const parameters = current.sessionRequest as unknown as Stripe.Checkout.SessionCreateParams;
       const raw = current.sessionId ? await provider.getSession(current.accountId, current.sessionId) :
         await provider.createSession(current.accountId, parameters, current.idempotencyKey);
-      const { session, url } = verifySession(raw, current, parameters);
+      const { session, url } = verifyFunnelSession(raw, current, parameters);
       await tx.funnelCheckoutAttempt.update({ where: { id: attemptId }, data: { sessionId: session.id, sessionStatus: session.status } });
       return { status: session.status, url };
     }, transactionOptions);

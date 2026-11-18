@@ -498,7 +498,17 @@ locally with no schema drift. Production build (including TypeScript), lint, ten
 session tests, 16 attempt/price tests and nine HTTP authentication checks pass
 (35 tests total). The preview on port 3115 runs this build. Live Stripe testing
 remains pending. Next is recovery/expiration and verified Connect payment-event
-reconciliation before public checkout. Awaiting commit.
+reconciliation before public checkout. Committed as `01282a3`.
+
+Stage 17f adds internal owner-only session inspection and cancellation. Recovery
+finds lost creation responses without replaying creates, validates matched sessions,
+handles cancellation/completion races and blocks unresolved attempts with a durable
+review marker. Local expiry, unpublished content and removed account mappings do
+not prevent recovery of historical sessions. Production build (including TypeScript),
+lint, 20 session/recovery integration tests and nine HTTP authentication checks
+pass (29 total). The preview on port 3115 runs this build. No migration is needed.
+Live Stripe verification remains pending; verified payment events are next before
+public checkout. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |
