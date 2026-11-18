@@ -50,7 +50,8 @@
     "test:fees": "bun test scripts/application-fees.test.ts",
     "test:funnels": "bun --env-file=.env.local test scripts/funnels.test.ts",
     "test:editor-history": "bun test scripts/editor-history.test.ts",
-    "test:funnel-prices": "bun --env-file=.env.local test scripts/funnel-price-check.test.ts"
+    "test:funnel-prices": "bun --env-file=.env.local test scripts/funnel-price-check.test.ts",
+    "test:page-offers": "bun --env-file=.env.local test scripts/page-offers.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

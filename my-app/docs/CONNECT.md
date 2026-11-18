@@ -236,3 +236,35 @@ owner access, empty configuration, unsupported prices, currency formatting,
 connection changes and provider failure. Tests use injected Stripe responses and
 local MySQL. Real price reads and signed-in UI checks remain pending while Stripe
 configuration is empty. Reference: [retrieve a price](https://docs.stripe.com/api/prices/retrieve).
+
+## Page offer configuration (17c)
+
+Agency owners can select one supported catalog price for each funnel page from
+the Page offer section. Selection stores the connected account, price ID and
+OAuth authorization start timestamp; amounts and fees are not accepted from a
+form or frozen in this selection. Clearing an offer remains possible when Stripe
+is disconnected. Other agency/client roles cannot configure or read offer options.
+
+Draft and published offers use separate nullable JSON fields. Saving a selection
+increments the funnel revision but leaves its published offer untouched. Publishing
+copies the current draft offer alongside the page snapshot. Publishing any change
+to a page with a draft or existing published offer requires the agency owner;
+workspace editors may still unpublish it to take the page offline. Unpublish clears
+the published offer but preserves the draft selection. Pages without offers retain
+the existing editor publishing permissions.
+
+Configuration validates the selected price against the current account's cached
+supported catalog and locks the account before the agency. Publication checks that
+the account mapping and authorization generation still match the selection. A
+reconnection requires selecting the offer again, even for the same account ID.
+This does not prove the price is still active at Stripe: the payment stage must
+retrieve the price/product and account again and validate published offer identity.
+Revoked connections must disable checkout even if an older published offer remains
+stored. Offer metadata is not included in the current public HTML response.
+
+Apply `bun run db:migrate` for `20261119010000_page_offers` and run
+`bun run test:page-offers`. Tests cover owner-only configuration, scoped IDs,
+rejected amount/account injection, draft/public separation, stale updates,
+reconnection, revocation, unpublishing and archived workspaces. This checkpoint
+creates no payment attempts or Stripe sessions; durable checkout attempts are next.
+Signed-in UI and real Stripe verification remain pending.

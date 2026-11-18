@@ -463,7 +463,18 @@ write is introduced. Production build including TypeScript, lint, 24 price/fee/
 catalog tests and nine HTTP authentication checks pass (33 total). The preview
 on port 3115 runs this build. Real provider and signed-in UI verification remain pending.
 No migration is needed. Next is published offer configuration and durable checkout
-attempts. Awaiting commit.
+attempts. Committed as `fdfdbed`.
+
+Stage 17c adds owner-configured page offers with separate draft and published
+snapshots, bound to the connected account's OAuth authorization generation.
+Publishing offer changes requires the owner; editors can still unpublish. Selection
+and publishing recheck ownership, tenant scope, revisions and connection state.
+The additive `20261119010000_page_offers` migration is applied locally. No payment
+attempt or Stripe session is created yet. Production build (including TypeScript),
+lint, 28 offer/funnel tests and nine HTTP authentication checks pass (37 total).
+The database schema matches the migration with no drift, and the preview on port
+3115 runs this build. Signed-in UI/provider checks remain pending. Durable checkout
+attempts are the next checkpoint. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

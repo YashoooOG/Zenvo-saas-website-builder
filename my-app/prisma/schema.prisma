@@ -342,7 +342,9 @@ model FunnelPage {
   name String @db.VarChar(191)
   path String @db.VarChar(191)
   draftContent Json
+  draftOffer Json?
   publishedContent Json?
+  publishedOffer Json?
   publishedAt DateTime? @db.DateTime(3)
   funnel Funnel @relation(fields: [subAccountId, funnelId], references: [subAccountId, id], onDelete: Cascade)
   createdAt DateTime @default(now()) @db.DateTime(3)

@@ -7,6 +7,7 @@ import { requireWorkspaceUser } from '@/lib/workspace-user';
 import { AgencyAccessError } from '@/lib/agency-access';
 import { createFunnel, mutateFunnel, FunnelConflict } from '@/lib/funnels';
 import { publishFunnelPage } from '@/lib/funnel-publishing';
+import { setPageOffer } from '@/lib/page-offers';
 
 export async function funnelAction(_previous: { message: string }, form: FormData) {
   const user = await requireWorkspaceUser(); let destination: string | undefined;
@@ -15,6 +16,9 @@ export async function funnelAction(_previous: { message: string }, form: FormDat
     if (operation === 'create') {
       const funnel = await createFunnel(getDb(), user.id, { subAccountId, name: form.get('name'), creationKey: form.get('creationKey') });
       destination = `/subaccount/${funnel.subAccountId}/funnels/${funnel.id}`;
+    } else if (operation === 'set-offer') {
+      const raw = form.get('revision');
+      await setPageOffer(getDb(), user.id, { subAccountId, funnelId: form.get('funnelId'), pageId: form.get('pageId'), priceId: form.get('priceId'), revision: typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : NaN });
     } else if (operation === 'publish' || operation === 'unpublish') {
       const raw = form.get('revision');
       await publishFunnelPage(getDb(), user.id, { subAccountId, funnelId: form.get('funnelId'), pageId: form.get('pageId'), operation, revision: typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : NaN, subdomain: form.get('subdomain') ?? '', confirmed: form.get('confirmed') === 'yes' });
