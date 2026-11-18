@@ -300,8 +300,7 @@ delivery are unverified. Preview is running the new build on port 3115. Billing
 reconciliation and recovery tooling are next; production billing remains gated on
 real provider verification and operational hardening.
 
-Stage 13e (owner-triggered subscription reconciliation) is implemented; awaiting
-commit. Production build including TypeScript, lint, 43 billing tests across five
+Stage 13e (owner-triggered subscription reconciliation) is committed as `8f76eed`. Production build including TypeScript, lint, 43 billing tests across five
 suites, and eight HTTP authentication checks passed (51 total). The final HTTP
 checks completed on November 18, 2026 after restarting the stopped preview.
 No migration is needed. Reconciliation uses the webhook's subscription validation,
@@ -313,6 +312,20 @@ settings remain empty at the user's request; real provider reads and the configu
 browser refresh flow remain unverified. The preview runs on port 3115. Uncertain
 checkout/customer creation-key recovery remains a separate upcoming checkpoint;
 refresh does not clear recovery keys or alter customer mappings.
+
+Stage 13f (operator checkout recovery) is implemented; awaiting commit.
+The additive `20261118010000_billing_recovery` migration is applied locally with
+zero schema drift. Production build including TypeScript, lint, 51 billing tests
+across six suites, and the recovery CLI help smoke check passed on November 18,
+2026. Local MySQL was restarted before migration/testing. Eight recovery tests cover
+read-only inspection and candidate preview, ownership, invalid candidates, stale
+fingerprints, explicit repairs, key preservation, and audit receipts. Test fixtures
+were removed automatically. No browser flow changed, so HTTP/UI checks were not
+repeated for this operator-only checkpoint. The preview runs the new build on 3115.
+Real Stripe candidate reads and repairs remain unverified because credentials stay
+empty. Recovery attaches known verified objects; it does not reset uncertain writes
+when no original object can be established. Stage 14 begins Stripe Connect setup;
+provider end-to-end verification and production operational hardening remain open.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

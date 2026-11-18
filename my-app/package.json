@@ -40,7 +40,9 @@
     "test:subscriptions": "bun --env-file=.env.local test scripts/subscriptions.test.ts",
     "test:checkout": "bun --env-file=.env.local test scripts/checkout.test.ts",
     "test:portal": "bun --env-file=.env.local test scripts/portal.test.ts",
-    "test:reconciliation": "bun --env-file=.env.local test scripts/reconciliation.test.ts"
+    "test:reconciliation": "bun --env-file=.env.local test scripts/reconciliation.test.ts",
+    "test:recovery": "bun --env-file=.env.local test scripts/recovery.test.ts",
+    "billing:recover": "bun --env-file=.env.local scripts/recover-billing.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

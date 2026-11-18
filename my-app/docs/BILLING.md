@@ -140,8 +140,8 @@ parameters. Uncertain requests are never retried after 23 hours, before Stripe's
 24-hour minimum key-retention boundary. Configuration changes during uncertain
 recovery also stop the flow. These cases require operator review: verify the Stripe
 customer/session and subscription state before repairing the local mapping or
-rotating any key. Do not clear recovery rows to work around an error. A dedicated
-recovery command is still needed before production. Sessions expire after an hour;
+rotating any key. Do not clear recovery rows to work around an error. The operator recovery command below can attach verified existing objects; it
+does not reset uncertain attempts when no original object can be identified. Sessions expire after an hour;
 if an uncertain request never reached Stripe and its expiry can no longer be used,
 provider validation may require this same operator review.
 
@@ -226,8 +226,73 @@ customer matching, incomplete histories, all-or-nothing updates, provider failur
 and concurrent refreshes using local MySQL and an injected provider. No migration
 is needed. Real Stripe reads and the configured browser refresh flow remain
 unverified while credentials are empty. Recovery of uncertain customer/checkout
-creation keys is separate and still requires operator tooling; this refresh does
+creation keys uses the separate operator command below; this refresh does
 not clear those keys or change the stored customer mapping.
+
+## Operator checkout recovery
+
+Stage 13f adds `billing:recover`, a local operator command for linking an existing
+test customer or checkout session after an uncertain provider response. Apply
+`bun run db:migrate` first: `20261118010000_billing_recovery` adds audit receipts.
+This is not a public API. Access to the local database and Stripe credentials is
+the operator trust boundary; `--owner` checks current active ownership and records
+that owner in the receipt, but is not proof of an operator's login identity.
+
+Inspect the local record without contacting Stripe:
+
+```sh
+bun run billing:recover --owner USER_ID --agency AGENCY_ID
+```
+
+Use Stripe's test dashboard/request logs to identify the object belonging to the
+original attempt. Do not guess when multiple candidates exist. Preview exactly one
+candidate (a test secret/restricted key with customer and session reads is required):
+
+```sh
+bun run billing:recover --owner USER_ID --agency AGENCY_ID --customer cus_ID
+bun run billing:recover --owner USER_ID --agency AGENCY_ID --session cs_test_ID
+```
+
+These commands do not write. Copy the fingerprint from the candidate preview,
+then explicitly apply that same candidate:
+
+```sh
+bun run billing:recover --owner USER_ID --agency AGENCY_ID --customer cus_ID --apply --expect PREVIEW_FINGERPRINT
+```
+
+For a session repair, use `--session cs_test_ID` in the apply command instead.
+Recover a customer first if its mapping is missing. Each apply obtains the same
+agency lock used by Checkout and reconciliation, rejects a changed fingerprint,
+and retrieves the candidate again. It verifies test mode, agency metadata, object
+IDs, and creation time within the stored attempt's retry window (five seconds of
+clock tolerance at the start). Session recovery additionally verifies the linked
+customer, original price and quantity, complete line items, expiry, and both return
+URLs. These guards supplement the operator's identification of the original object;
+creation time and agency metadata alone do not distinguish arbitrary duplicate
+objects manually created in Stripe.
+
+A repair only fills a missing mapping. It cannot replace a different customer or
+session, use an object claimed by another agency, reset/rotate keys, create Stripe
+resources, change subscription status, or grant entitlements. The mapping and a
+`BillingRecoveryReceipt` commit together. Receipts contain the agency, current owner,
+kind, object ID, state fingerprint, and time; they cascade if the agency is deleted.
+They are operational history, not a tamper-proof external audit trail. Reapplying
+an already linked object does not add another receipt. Reports omit retry keys,
+credentials, customer contact data, and hosted session URLs.
+
+After recovery, use **Refresh status from Stripe** and inspect the result. Normal
+Checkout logic then handles a verified expired session or a terminal subscription.
+When the original object cannot be established, recovery leaves the attempt blocked.
+There is deliberately no reset-on-absence command: absence from a search is not
+proof that a provider write never happened. Such cases still require manual provider
+investigation and a separately reviewed remediation. The command does not bypass
+the normal 23-hour retry cutoff by attempting the original write again.
+
+`bun run test:recovery` tests local inspection, argument rejection, ownership,
+candidate validation, stale fingerprints, read-only preview, explicit apply,
+unchanged keys, and audit receipts using local MySQL with an injected provider.
+Real candidate retrieval/application remains unverified while Stripe is empty.
+No browser UI is changed in this checkpoint.
 
 ## References
 
@@ -241,6 +306,8 @@ not clear those keys or change the stored customer mapping.
 - [Create a customer portal session](https://docs.stripe.com/api/customer_portal/sessions/create)
 - [Configure and integrate the customer portal](https://docs.stripe.com/customer-management/integrate-customer-portal)
 - [List all subscription statuses](https://docs.stripe.com/api/subscriptions/list)
+- [Retrieve a Checkout Session](https://docs.stripe.com/api/checkout/sessions/retrieve)
+- [Retrieve a customer](https://docs.stripe.com/api/customers/retrieve)
 
 Currency formatting deliberately supports a small explicit set. JPY has zero
 decimal places; the other supported currencies have two. Tax copy reflects the

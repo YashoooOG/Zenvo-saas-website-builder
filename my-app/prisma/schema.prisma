@@ -62,6 +62,7 @@ model Agency {
   stripeConnectAccountId String? @unique @db.VarChar(191)
   subscriptions AgencySubscription[]
   checkout AgencyCheckout?
+  billingRecoveries BillingRecoveryReceipt[]
   createdAt DateTime @default(now()) @db.DateTime(3)
   updatedAt DateTime @updatedAt @db.DateTime(3)
   memberships AgencyMembership[]
@@ -69,6 +70,18 @@ model Agency {
   invitations AgencyInvitation[]
   @@index([ownerId])
   @@unique([ownerId, creationKey])
+}
+
+model BillingRecoveryReceipt {
+  id String @id @default(uuid()) @db.VarChar(36)
+  agencyId String @db.VarChar(191)
+  agency Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  ownerId String @db.VarChar(191)
+  kind String @db.VarChar(16)
+  objectId String @db.VarChar(191)
+  fingerprint String @db.Char(64)
+  createdAt DateTime @default(now()) @db.DateTime(3)
+  @@index([agencyId, createdAt])
 }
 
 model AgencyCheckout {
