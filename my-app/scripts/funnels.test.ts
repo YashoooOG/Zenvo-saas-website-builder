@@ -9,6 +9,10 @@ import { createFunnel, getFunnel, listFunnels, mutateFunnel } from '../src/lib/f
 import { emptyEditorContent, validateEditorContent } from '../src/lib/editor-content';
 import { getFunnelDraft, saveFunnelDraft } from '../src/lib/funnel-drafts';
 import { applyEditorOperation } from '../src/lib/editor-operations';
+import { safeEditorHref } from '../src/lib/editor-content';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { DraftPreview } from '../src/components/agency/draft-preview';
 
 const db = createDatabaseClient(process.env.DATABASE_URL);
 const tag = `funnels_${randomUUID()}`;
@@ -141,4 +145,37 @@ test('editor operations preserve input, support nested blocks and moves, and rej
   assert.throws(() => applyEditorOperation(doc, { type: 'text', id: 'two', text: 'x'.repeat(10001) }));
   doc = applyEditorOperation(doc, { type: 'remove', id: 'section' });
   assert.deepEqual(doc, emptyEditorContent());
+});
+
+test('new elements and styles save/reload while existing version-1 drafts remain valid', async () => {
+  const funnel = await create();
+  await mutateFunnel(db, owner, { ...await context(funnel.id), operation: 'create-page', name: 'Styled page', path: '/styled-page' });
+  const page = await db.funnelPage.findFirstOrThrow({ where: { funnelId: funnel.id } });
+  let content = applyEditorOperation(emptyEditorContent(), { type: 'add', parentId: 'root', node: { id: 'heading', type: 'heading', text: 'Welcome', level: 1 } });
+  content = applyEditorOperation(content, { type: 'add', parentId: 'root', node: { id: 'button', type: 'button', text: 'Contact', href: '/contact' } });
+  content = applyEditorOperation(content, { type: 'style', id: 'heading', style: { color: '#112233', backgroundColor: '#ffffff', padding: 24, fontSize: 48, textAlign: 'center', borderRadius: 8 } });
+  content = applyEditorOperation(content, { type: 'level', id: 'heading', level: 2 });
+  content = applyEditorOperation(content, { type: 'href', id: 'button', href: 'https://example.com/contact' });
+  await saveFunnelDraft(db, owner, { ...await context(funnel.id), pageId: page.id, content });
+  assert.deepEqual((await getFunnelDraft(db, owner, subAccountId, funnel.id, page.id))?.page.content, content);
+  assert.deepEqual(validateEditorContent(emptyEditorContent()), emptyEditorContent());
+});
+
+test('unsafe destinations and arbitrary CSS cannot enter saved content', () => {
+  for (const href of ['javascript:alert(1)', 'data:text/html,bad', '//evil.com', '/\\evil.com', 'http://example.com', 'https://user:password@example.com', 'https://example.com\n', '']) assert.equal(safeEditorHref(href), false, href);
+  for (const href of ['/', '/contact?source=page#form', '#contact', 'https://example.com']) assert.equal(safeEditorHref(href), true, href);
+  for (const style of [{ padding: -1 }, { fontSize: 200 }, { color: 'url(https://example.com)' }, { backgroundImage: 'url(https://example.com)' }, { position: 'fixed' }, { textAlign: 'invalid' }]) {
+    assert.throws(() => validateEditorContent({ version: 1, root: { id: 'root', type: 'container', style, children: [] } }));
+  }
+  assert.throws(() => validateEditorContent({ version: 1, root: { id: 'root', type: 'container', children: [{ id: 'bad', type: 'button', text: 'Bad', href: 'javascript:alert(1)' }] } }));
+});
+
+test('preview renders semantic headings, escapes markup and does not create navigating links', () => {
+  const doc = validateEditorContent({ version: 1, root: { id: 'root', type: 'container', children: [
+    { id: 'heading', type: 'heading', text: '<script>alert(1)</script>', level: 2, style: { fontSize: 32, padding: 12 } },
+    { id: 'button', type: 'button', text: 'Go', href: 'https://example.com' },
+  ] } });
+  const html = renderToStaticMarkup(createElement(DraftPreview, { node: doc.root }));
+  assert.match(html, /<h2/); assert.match(html, /font-size:32px/); assert.match(html, /&lt;script&gt;/);
+  assert.ok(!html.includes('<script>')); assert.ok(!html.includes('href=')); assert.match(html, /<button type="button"/);
 });

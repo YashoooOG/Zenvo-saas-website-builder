@@ -406,7 +406,16 @@ Production build including TypeScript, lint, ten funnel/editor tests and nine HT
 authentication checks pass (19 total). The preview on port 3115 runs this build.
 No migration is needed. Signed-in visual/interactive
 verification remains pending. Next is richer editor elements and style controls,
-followed by drag-and-drop and history. Awaiting commit.
+followed by drag-and-drop and history. Committed as `baeb206`.
+
+Stage 15c adds headings, button destinations and bounded appearance controls to
+the draft editor. Content and styles are validated again on save; existing drafts
+remain compatible. Preview rendering escapes text and does not follow button
+links. Production build including TypeScript, lint, thirteen editor/funnel tests
+and nine HTTP authentication checks pass (22 total). The preview on port 3115
+runs this build. No migration is needed. Signed-in visual
+verification remains pending. Next is responsive preview and editor history,
+followed by drag-and-drop and media elements. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

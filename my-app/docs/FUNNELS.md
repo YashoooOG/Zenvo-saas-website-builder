@@ -18,8 +18,8 @@ fragments, traversal, empty segments, trailing slashes and reserved application
 routes are rejected. Paths are unique across all funnels in one workspace, as
 required by the existing database constraint. Different workspaces can reuse paths.
 
-New pages receive a validated version-1 empty document. The initial document type
-supports containers and plain text only. Validation rejects unknown executable
+New pages receive a validated version-1 empty document. The initial document type supports containers and plain text; stage 15c adds
+headings, buttons and optional validated appearance properties. Validation rejects unknown executable
 fields/node types, duplicate IDs, cycles, more than 500 nodes, excessive nesting
 and more than 100,000 JSON characters. Pre-validation also limits traversal to
 4,000 values and depth 20 before recursive schema parsing. There is no HTML/script execution, public route or publish action. Stage 15b adds
@@ -61,5 +61,26 @@ full-page navigation so the browser can issue its unsaved-change warning.
 Ten tests now cover management plus save/reload, read-only guest access, foreign
 page scopes, unchanged published snapshots, invalid documents, overlapping saves,
 immutable editor operations and nested block ordering/removal. No schema migration
-is needed. Styling controls, responsive canvas, drag-and-drop, undo/redo and
-publishing remain future checkpoints. Signed-in interactive verification is pending.
+is needed. Responsive canvas, drag-and-drop, undo/redo and publishing remain future
+checkpoints. Stage 15c adds the style controls below. Signed-in interactive verification is pending.
+
+## Headings, buttons and appearance (15c)
+
+The editor can add semantic H1/H2/H3 headings and button blocks. Text fields stay
+plain text and are escaped by React. Buttons store a destination restricted to
+HTTPS URLs without credentials, root-relative paths, or simple anchors. Other
+schemes, protocol-relative URLs, backslashes, whitespace and control characters
+are rejected. Destinations require the explicit Apply destination control before
+saving. Preview buttons never navigate; public link rendering is a later stage.
+
+Appearance controls apply optional six-digit hex text/background colors, integer
+padding (0–120px), text size (12–96px), left/center/right alignment and corner radius
+(0–64px). Reset appearance clears the overrides. Arbitrary CSS, stylesheets,
+HTML, event handlers and background-image URLs are not accepted. Existing
+version-1 text/container drafts remain valid without migration. These are shared
+base styles; per-device overrides are not implemented yet.
+
+Thirteen tests now include saving/reloading new elements and appearance, safe URL
+validation, rejected CSS fields, semantic heading rendering, escaped markup and
+non-navigating preview buttons. Signed-in visual and interactive testing remains
+pending. Image/video elements and media ownership checks remain future work.

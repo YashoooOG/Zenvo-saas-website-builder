@@ -1,10 +1,28 @@
 import { z } from 'zod';
 
-export type EditorNode = { id: string; type: 'text'; text: string } | { id: string; type: 'container'; children: EditorNode[] };
+export const editorStyleSchema = z.object({
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  padding: z.number().int().min(0).max(120).optional(), fontSize: z.number().int().min(12).max(96).optional(),
+  textAlign: z.enum(['left', 'center', 'right']).optional(), borderRadius: z.number().int().min(0).max(64).optional(),
+}).strict();
+export type EditorStyle = z.infer<typeof editorStyleSchema>;
+export function safeEditorHref(value: string) {
+  if (!value || value.length > 2048 || /[\s\\\u0000-\u001f\u007f]/.test(value)) return false;
+  if (/^#[A-Za-z][A-Za-z0-9_-]*$/.test(value)) return true;
+  if (value.startsWith('/') && !value.startsWith('//')) return true;
+  try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; }
+}
+export type EditorNode = { id: string; style?: EditorStyle } & (
+  { type: 'text'; text: string } | { type: 'heading'; text: string; level: 1 | 2 | 3 } |
+  { type: 'button'; text: string; href: string } | { type: 'container'; children: EditorNode[] }
+);
 const nodeId = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
+const common = { id: nodeId, style: editorStyleSchema.optional() };
 const node: z.ZodType<EditorNode> = z.lazy(() => z.discriminatedUnion('type', [
-  z.object({ id: nodeId, type: z.literal('text'), text: z.string().max(10000) }).strict(),
-  z.object({ id: nodeId, type: z.literal('container'), children: z.array(node).max(100) }).strict(),
+  z.object({ ...common, type: z.literal('text'), text: z.string().max(10000) }).strict(),
+  z.object({ ...common, type: z.literal('heading'), text: z.string().max(200), level: z.union([z.literal(1), z.literal(2), z.literal(3)]) }).strict(),
+  z.object({ ...common, type: z.literal('button'), text: z.string().max(200), href: z.string().refine(safeEditorHref, 'Use HTTPS, a root-relative path, or an anchor.') }).strict(),
+  z.object({ ...common, type: z.literal('container'), children: z.array(node).max(100) }).strict(),
 ]));
 
 export function validateEditorContent(input: unknown) {
