@@ -453,7 +453,17 @@ races. Production build, final TypeScript check, lint, 29 funnel/media tests
 pass (42 total). The preview runs this build on port 3115. No migration is needed.
 Signed-in publishing interaction and production
 DNS/TLS remain pending. Next is server-verified funnel checkout preparation.
-Awaiting commit.
+Committed as `fdf7a0d`.
+
+Stage 17b adds an owner-only current price/fee check to supported catalog prices.
+It verifies current connected-account status, expanded product/price identity,
+test mode and fixed one-time pricing, calculates fees from server policy, and
+rechecks ownership/connection after provider reads. No payment endpoint or Stripe
+write is introduced. Production build including TypeScript, lint, 24 price/fee/
+catalog tests and nine HTTP authentication checks pass (33 total). The preview
+on port 3115 runs this build. Real provider and signed-in UI verification remain pending.
+No migration is needed. Next is published offer configuration and durable checkout
+attempts. Awaiting commit.
 
 | Stage | Tutorial anchor | Deliverable | Verification gate |
 | --- | --- | --- | --- |

@@ -6,6 +6,7 @@ import { AgencyAccessError } from '@/lib/agency-access';
 import { getAgencyPayments } from '@/lib/agency-payments';
 import { retrieveConnectedAccount } from '@/lib/stripe-connect';
 import { ConnectForm } from '@/components/agency/connect-form';
+import { PriceCheckForm } from '@/components/agency/price-check-form';
 import { CatalogForm } from '@/components/agency/catalog-form';
 import { getConnectedCatalog } from '@/lib/connected-catalog';
 import { applicationFeeSummary } from '@/lib/application-fees';
@@ -42,7 +43,7 @@ export default async function AgencyPaymentsPage({ params, searchParams }: PageP
         {catalog.products.length ? <ul>{catalog.products.map(product => <li key={product.id}>
           <h3>{product.name}{!product.active && ' (archived)'}</h3>
           {product.prices.length ? <ul>{product.prices.map(price => <li key={price.id}>
-            <code>{price.id}</code> · {price.currency.toUpperCase()} · {price.amount === null ? 'Variable amount' : `${price.amount} minor units`} · {price.type === 'recurring' ? 'Recurring' : 'One-time'}{!price.active && ' · Archived'}{!price.supported && ' · Not supported for initial checkout'}
+            <code>{price.id}</code> · {price.currency.toUpperCase()} · {price.amount === null ? 'Variable amount' : `${price.amount} minor units`} · {price.type === 'recurring' ? 'Recurring' : 'One-time'}{!price.active && ' · Archived'}{!price.supported && ' · Not supported for initial checkout'}{price.supported && <PriceCheckForm agencyId={agencyId} priceId={price.id} />}
           </li>)}</ul> : <p>No prices in this snapshot.</p>}
         </li>)}</ul> : <p>No products found in this Stripe account.</p>}</> : <p>No catalog synchronized yet.</p>}
     </section>}

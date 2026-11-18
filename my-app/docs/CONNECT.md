@@ -205,3 +205,34 @@ References: [OAuth for Standard accounts](https://docs.stripe.com/connect/oauth-
 Catalog references: [products](https://docs.stripe.com/api/products/list), [prices](https://docs.stripe.com/api/prices/list).
 
 Fee reference: [Stripe direct charges](https://docs.stripe.com/connect/direct-charges).
+
+## Current price and fee check (17b)
+
+Supported catalog prices now have an owner-only Check current price and fee
+button. It requires configured test Connect credentials, an explicit fee policy,
+an OAuth-authorized account, and a supported active price in that agency's catalog.
+It retrieves the current Standard account and the price with an expanded product,
+using Stripe-Account for the price request. Charge/payout restrictions, live or
+inactive objects, mismatched identities, recurring/tiered/variable/fractional
+prices and unsupported currencies are rejected.
+
+The first supported subset is one unit, fixed integer amounts from 1 to 99,999,999
+minor units in USD/EUR/GBP/INR/CAD/AUD/JPY. Formatting respects JPY's zero decimal
+places. The fee is calculated from current provider data and server basis points;
+no request field can choose the amount, fee, account, currency or quantity. The
+expanded product must match the selected catalog product. Active ownership and
+connection generation/revocation are rechecked under account-first locks after
+provider reads. No Stripe write, payment or catalog mutation is performed.
+
+The displayed result is a point-in-time price check, not a reserved quote or
+permission to charge. It reports provider tax treatment but does not calculate
+taxes, shipping or discounts. The subsequent checkout stage must revalidate and
+persist an immutable attempt before external payment writes, enforce the
+published page's configured offer, and implement idempotency, verified webhooks
+and refund handling. The public page cannot initiate checkout yet.
+
+Run `bun run test:funnel-prices` for current-price authority, tampered input,
+owner access, empty configuration, unsupported prices, currency formatting,
+connection changes and provider failure. Tests use injected Stripe responses and
+local MySQL. Real price reads and signed-in UI checks remain pending while Stripe
+configuration is empty. Reference: [retrieve a price](https://docs.stripe.com/api/prices/retrieve).
